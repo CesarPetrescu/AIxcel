@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://192.168.10.161:6889';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(`${BACKEND_URL}/cells`);
+    const sheet = request.nextUrl.searchParams.get('sheet') || 'default';
+    const response = await fetch(`${BACKEND_URL}/cells?sheet=${sheet}`);
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
@@ -16,6 +17,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const sheet = body.sheet || request.nextUrl.searchParams.get('sheet') || 'default';
+    body.sheet = sheet;
     const response = await fetch(`${BACKEND_URL}/cells`, {
       method: 'POST',
       headers: {

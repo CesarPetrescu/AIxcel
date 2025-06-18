@@ -1,0 +1,18 @@
+# Rust
+/target/
+**/target/
+
+# Node
+node_modules/
+
+# Lockfiles
+Cargo.lock
+**/Cargo.lock
+package-lock.json
+**/package-lock.json
+
+# misc
+.DS_Store
+cells.db
+*.svg
+*.ico

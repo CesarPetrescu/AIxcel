@@ -1,0 +1,408 @@
+/* Container and layout */
+.container {
+  padding: 0;
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+}
+
+/* Header area */
+.header {
+  background: linear-gradient(135deg, #2c5aa0 0%, #3d72b4 100%);
+  color: white;
+  padding: 15px 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header h1 {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.selectedCell {
+  background: rgba(255,255,255,0.2);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+  min-width: 120px;
+}
+
+.formulaBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.formulaBar label {
+  font-weight: 500;
+}
+
+.formulaInput {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  min-width: 200px;
+}
+
+.evalButton {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.evalButton:hover {
+  background: #218838;
+}
+
+/* Spreadsheet area */
+.spreadsheet {
+  flex: 1;
+  overflow: auto;
+  background: white;
+  border: 1px solid #dee2e6;
+  margin: 0;
+}
+
+/* Grid styling */
+.grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 14px;
+}
+
+/* Corner cell (top-left) */
+.cornerCell {
+  background: #e9ecef;
+  border: 1px solid #adb5bd;
+  width: 40px;
+  height: 25px;
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 3;
+}
+
+/* Column headers (A, B, C...) */
+.columnHeader {
+  background: #e9ecef;
+  border: 1px solid #adb5bd;
+  border-left: none;
+  padding: 6px 12px;
+  text-align: center;
+  font-weight: 600;
+  min-width: 80px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  color: #495057;
+}
+
+/* Row headers (1, 2, 3...) */
+.rowHeader {
+  background: #e9ecef;
+  border: 1px solid #adb5bd;
+  border-top: none;
+  padding: 6px 8px;
+  text-align: center;
+  font-weight: 600;
+  width: 40px;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  color: #495057;
+}
+
+/* Individual cells */
+.cell {
+  border: 1px solid #dee2e6;
+  border-left: none;
+  border-top: none;
+  padding: 0;
+  height: 25px;
+  min-width: 80px;
+  position: relative;
+  cursor: cell;
+  background: white;
+  transition: background-color 0.1s;
+}
+
+.cell:hover {
+  background: #f8f9fa;
+}
+
+/* Selected cell */
+.selectedCell {
+  background: #e3f2fd !important;
+  border: 2px solid #2196f3 !important;
+  box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
+}
+
+/* Cell input for editing */
+.cellInput {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  padding: 4px 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background: white;
+  box-sizing: border-box;
+}
+
+/* Cell content */
+.cell div,
+.cell span {
+  padding: 4px 6px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Scrollbar styling */
+.spreadsheet::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.spreadsheet::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.spreadsheet::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 6px;
+}
+
+.spreadsheet::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .formulaBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+  }
+  
+  .formulaInput {
+    min-width: auto;
+  }
+}
+
+/* Focus states */
+.formulaInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+}
+
+.evalButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+}
+
+/* Animation for cell selection */
+.selectedCell {
+  animation: cellSelect 0.2s ease-out;
+}
+
+@keyframes cellSelect {
+  from {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.main code {
+  font-family: inherit;
+  background: var(--gray-alpha-100);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.ctas {
+  display: flex;
+  gap: 16px;
+}
+
+.ctas a {
+  appearance: none;
+  border-radius: 128px;
+  height: 48px;
+  padding: 0 20px;
+  border: none;
+  border: 1px solid transparent;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+a.primary {
+  background: var(--foreground);
+  color: var(--background);
+  gap: 8px;
+}
+
+a.secondary {
+  border-color: var(--gray-alpha-200);
+  min-width: 158px;
+}
+
+.footer {
+  grid-row-start: 3;
+  display: flex;
+  gap: 24px;
+}
+
+.footer a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer img {
+  flex-shrink: 0;
+}
+
+/* Enable hover only on non-touch devices */
+@media (hover: hover) and (pointer: fine) {
+  a.primary:hover {
+    background: var(--button-primary-hover);
+    border-color: transparent;
+  }
+
+  a.secondary:hover {
+    background: var(--button-secondary-hover);
+    border-color: transparent;
+  }
+
+  .footer a:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 32px;
+    padding-bottom: 80px;
+  }
+
+  .main {
+    align-items: center;
+  }
+
+  .main ol {
+    text-align: center;
+  }
+
+  .ctas {
+    flex-direction: column;
+  }
+
+  .ctas a {
+    font-size: 14px;
+    height: 40px;
+    padding: 0 16px;
+  }
+
+  a.secondary {
+    min-width: auto;
+  }
+
+  .footer {
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .logo {
+    filter: invert();
+  }
+}
+.container {
+  padding: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.table th,
+.table td {
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.form input {
+  flex: 1 1 80px;
+  padding: 0.5rem;
+}
+
+.form button {
+  padding: 0.5rem 1rem;
+}
+
+@media (max-width: 600px) {
+  .form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

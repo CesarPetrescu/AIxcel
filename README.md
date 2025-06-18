@@ -1,7 +1,30 @@
 
 ---
-
-## ✨ What is it?
+**AIX## Table of1. [Current Features]| Component | Status | Description |
+|-----------|--------|-------------|
+| **Excel Formula Engine** | ✅ | SUM, AVERAGE functions with cell references (A1, B2, etc.) |
+| **Real-time Collaboration** | ✅ | WebSocket-based multi-user editing with live updates |
+| **Data Persistence** | ✅ | SQLite storage with cell formatting support |
+| **REST API** | ✅ | Full CRUD operations for cells and formula evaluation |
+| **Virtual Grid** | ✅ | Efficient rendering for large datasets |
+| **Bulk Operations** | ✅ | Transaction-based bulk cell updates |
+| **Cell Formatting** | ✅ | Font weight, style, and background color |
+| **Context Menus** | ✅ | Right-click cell operations |t-features)
+2. [Quick Start](#quick-start)
+3. [Architecture](#architecture)
+4. [API Endpoints](#api-endpoints)
+5. [Development Status](#development-status)
+6. [Planned Features](#planned-features)
+7. [Contributing](#contributing)
+8. [License](#license)1. [Current Features](#current-features)
+2. [Quick Start](#quick-start)
+3. [Architecture](#architecture)
+4. [API Endpoints](#api-endpoints)
+5. [Development Status](#development-status)
+6. [Planned Features](#planned-features)
+7. [Contributing](#contributing)
+8. [License](#license)dern, real-time collaborative spreadsheet application built with Rust and React. 
+Currently it provides a solid foundation with Excel formula evaluation, real-time collaboration via WebSockets, and a responsive web interface. The project is designed to eventually become an intelligent data hub with AI agents, live database connectors, and enterprise-grade security.# ✨ What is it?
 
 **AIxcel** turns any React‑based spreadsheet into an intelligent data hub.
 It combines 🚀 AI agents , 🔌 live database & API connectors, and 🛡 enterprise‑grade security so teams can chat with data, auto‑clean sheets, and keep everything in sync—without leaving the grid.
@@ -24,7 +47,7 @@ It combines 🚀 AI agents , 🔌 live database & API connectors, and 
 
 ---
 
-## Features
+## Current Features
 
 | Category      | Highlight                                          |
 | ------------- | -------------------------------------------------- |
@@ -67,19 +90,62 @@ This launches a simple Actix API with a SQLite workbook and a Next.js UI.
 To evaluate a formula directly:
 
 ```bash
-curl -X POST http://localhost:8080/evaluate \
+curl -X POST http://localhost:6889/evaluate \
   -H "Content-Type: application/json" \
   -d '{"expr":"=SUM(1,2,3)"}'
 ```
 
 ## Development Status
 
-- [x] Actix backend with SQLite storage
-- [x] Responsive Next.js frontend
-- [x] Integration tests
-- [x] Excel formula engine
-- [ ] AI connectors and agents
-- [ ] External data connectors
+✅ **Completed**
+- [x] Actix-web backend with SQLite storage  
+- [x] Real-time WebSocket collaboration
+- [x] Responsive Next.js frontend with virtual grid
+- [x] Excel formula engine (SUM, AVERAGE, cell references)
+- [x] Comprehensive integration tests
+- [x] Cell formatting and styling
+- [x] Bulk operations and context menus
+
+🚧 **In Progress**
+- [ ] Enhanced formula functions (COUNT, IF, VLOOKUP, etc.)
+- [ ] Error handling and formula validation
+- [ ] Performance optimizations for large datasets
+
+📋 **Planned Features**
+- [ ] AI-powered natural language formula generation
+- [ ] External data connectors (MySQL, PostgreSQL, APIs)  
+- [ ] Advanced charting and visualization
+- [ ] User authentication and permissions
+- [ ] Export/import functionality
+- [ ] Audit logging and version history
+
+---
+
+## Planned Features
+
+### 🤖 AI & Intelligence
+- **Natural Language Queries**: Convert plain English to formulas
+- **Smart Auto-completion**: Context-aware formula suggestions  
+- **Data Analysis**: Automatic insights and pattern detection
+- **Voice Commands**: Voice-to-SQL conversion
+
+### 🔌 Data Integration  
+- **Database Connectors**: MySQL, PostgreSQL, SQL Server, MongoDB
+- **API Integration**: REST/GraphQL endpoints with scheduling
+- **Cloud Storage**: Google Sheets, Excel Online synchronization
+- **Real-time Streams**: Live data feeds and event-driven updates
+
+### 🛡️ Enterprise Security
+- **Authentication**: SSO integration and user management
+- **Authorization**: Role-based access control (RBAC)
+- **Encryption**: End-to-end data encryption
+- **Compliance**: Comprehensive audit logging
+
+### 📊 Advanced Analytics
+- **Visualization**: Interactive charts and dashboards
+- **Pivot Tables**: Dynamic data summarization
+- **Conditional Formatting**: Rule-based cell styling
+- **Data Validation**: Input constraints and error checking
 
 ---
 

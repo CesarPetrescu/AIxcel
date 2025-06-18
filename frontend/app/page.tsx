@@ -28,8 +28,8 @@ const getVisibleArea = (containerWidth: number, containerHeight: number, scrollL
 };
 
 export default function Home() {
-  // API base URL - backend is always on localhost:6889
-  const API_BASE_URL = 'http://localhost:6889';
+  // API base URL can be configured via environment variable
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
   const [cells, setCells] = useState<Cell[]>([]);
   const [selectedCells, setSelectedCells] = useState<{row: number, col: number}[]>([]);
@@ -60,7 +60,8 @@ export default function Home() {
 
   // WebSocket connection setup
   useEffect(() => {
-    const wsUrl = API_BASE_URL.replace('http', 'ws') + '/ws';
+    const base = API_BASE_URL || window.location.origin;
+    const wsUrl = base.replace('http', 'ws') + '/ws';
     const websocket = new WebSocket(wsUrl);
     
     websocket.onopen = () => {
@@ -124,7 +125,8 @@ export default function Home() {
   // Initial data fetch
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      fetch(`${API_BASE_URL}/cells`)
+      const url = API_BASE_URL ? `${API_BASE_URL}/cells` : '/cells';
+      fetch(url)
         .then((res) => res.json())
         .then(setCells)
         .catch(console.error);
@@ -157,6 +159,13 @@ export default function Home() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (editingCell) return; // Don't handle global keys when editing a cell
+
+      if (primarySelection && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setEditingCell(primarySelection);
+        setEditValue(e.key);
+        return;
+      }
       
       if (e.key === 'Delete' || e.key === 'Backspace') {
         clearSelectedCells();
@@ -718,33 +727,48 @@ export default function Home() {
       background_color: formatting?.background_color,
     };
     
-    await fetch(`${API_BASE_URL}/cells`, {
+    const url = API_BASE_URL ? `${API_BASE_URL}/cells` : '/cells';
+    await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(cellData),
     });
-    const res = await fetch(`${API_BASE_URL}/cells`);
-    setCells(await res.json());
+    setCells(prev => {
+      const idx = prev.findIndex(c => c.row === row && c.col === col);
+      const updated = { ...cellData } as Cell;
+      if (idx >= 0) {
+        const arr = [...prev];
+        arr[idx] = { ...arr[idx], ...updated };
+        return arr;
+      }
+      return [...prev, updated];
+    });
   };
 
   const updateCellsBulk = async (cellsToUpdate: Cell[]) => {
-    await fetch(`${API_BASE_URL}/cells/bulk`, {
+    const url = API_BASE_URL ? `${API_BASE_URL}/cells/bulk` : '/cells/bulk';
+    await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(cellsToUpdate),
     });
-    const res = await fetch(`${API_BASE_URL}/cells`);
-    setCells(await res.json());
+    setCells(prev => {
+      const map = new Map(prev.map(c => [`${c.row}-${c.col}`, c]));
+      cellsToUpdate.forEach(c => {
+        map.set(`${c.row}-${c.col}`, { ...c });
+      });
+      return Array.from(map.values());
+    });
   };
 
   const clearCellsBulk = async (positions: {row: number, col: number}[]) => {
-    await fetch(`${API_BASE_URL}/cells/clear`, {
+    const url = API_BASE_URL ? `${API_BASE_URL}/cells/clear` : '/cells/clear';
+    await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cells: positions }),
     });
-    const res = await fetch(`${API_BASE_URL}/cells`);
-    setCells(await res.json());
+    setCells(prev => prev.filter(c => !positions.some(p => p.row === c.row && p.col === c.col)));
   };
 
   const handleCellClick = (row: number, col: number, event?: React.MouseEvent) => {
@@ -937,7 +961,8 @@ export default function Home() {
     if (!formula) return;
     
     try {
-      const res = await fetch(`${API_BASE_URL}/evaluate`, {
+      const url = API_BASE_URL ? `${API_BASE_URL}/evaluate` : '/evaluate';
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ expr: formula }),

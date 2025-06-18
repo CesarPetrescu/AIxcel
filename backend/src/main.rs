@@ -409,7 +409,7 @@ mod tests {
     async fn health_works() {
         let conn = Connection::open_in_memory().unwrap();
         init_db(&conn);
-        let data = web::Data::new(AppState { db: Mutex::new(conn) });
+        let data = web::Data::new(AppState { db: Mutex::new(conn), sessions: Arc::new(Mutex::new(HashMap::new())) });
         let app = test::init_service(
             App::new()
                 .app_data(data.clone())
@@ -428,7 +428,7 @@ mod tests {
     async fn create_and_list_cells() {
         let conn = Connection::open_in_memory().unwrap();
         init_db(&conn);
-        let data = web::Data::new(AppState { db: Mutex::new(conn) });
+        let data = web::Data::new(AppState { db: Mutex::new(conn), sessions: Arc::new(Mutex::new(HashMap::new())) });
         let app = test::init_service(
             App::new()
                 .app_data(data.clone())
@@ -459,7 +459,7 @@ mod tests {
     async fn evaluate_formula() {
         let conn = Connection::open_in_memory().unwrap();
         init_db(&conn);
-        let data = web::Data::new(AppState { db: Mutex::new(conn) });
+        let data = web::Data::new(AppState { db: Mutex::new(conn), sessions: Arc::new(Mutex::new(HashMap::new())) });
         let app = test::init_service(
             App::new()
                 .app_data(data.clone())
@@ -481,7 +481,7 @@ mod tests {
     async fn evaluate_average() {
         let conn = Connection::open_in_memory().unwrap();
         init_db(&conn);
-        let data = web::Data::new(AppState { db: Mutex::new(conn) });
+        let data = web::Data::new(AppState { db: Mutex::new(conn), sessions: Arc::new(Mutex::new(HashMap::new())) });
         let app = test::init_service(
             App::new()
                 .app_data(data.clone())
@@ -503,7 +503,7 @@ mod tests {
     async fn set_formula_cell() {
         let conn = Connection::open_in_memory().unwrap();
         init_db(&conn);
-        let data = web::Data::new(AppState { db: Mutex::new(conn) });
+        let data = web::Data::new(AppState { db: Mutex::new(conn), sessions: Arc::new(Mutex::new(HashMap::new())) });
         let app = test::init_service(
             App::new()
                 .app_data(data.clone())

@@ -1,7 +1,173 @@
 
 ---
+**AIX## Table of1. [Current Features]| Component | Status | Description ## Quick Start
 
-## ✨ What is it?
+### Prerequisites
+
+Before running AIXcel, ensure you have:
+
+- **Rust** (latest stable version) - [Install from rustup.rs](https://rustup.rs/)
+- **Node.js** (v18 or higher) - [Install from nodejs.org](https://nodejs.org/)
+- **npm** (comes with Node.js)
+
+### Step-by-Step Setup
+
+#### Option A: Quick Start (Recommended)
+
+**Linux/Mac:**
+```bash
+# Navigate to project directory
+cd AIXcel/AIxcel
+
+# Run the startup script (starts both servers)
+./start.sh
+```
+
+**Windows:**
+```batch
+# Navigate to project directory
+cd AIXcel\AIxcel
+
+# Run the startup script (starts both servers)
+start.bat
+```
+
+This will automatically start both backend and frontend servers and display helpful information.
+
+#### Option B: Manual Setup
+
+#### 1. Clone and Navigate to Project
+```bash
+git clone <repository-url>
+cd AIXcel/AIxcel  # Note: there are two AIxcel directories
+```
+
+#### 2. Start the Backend (Rust/Actix)
+```bash
+# Navigate to backend directory
+cd backend
+
+# Run the Rust server (this will compile and start)
+cargo run
+
+# You should see output like:
+# Compiling backend v0.1.0 (/path/to/backend)
+# Finished dev profile [unoptimized + debuginfo] target(s)
+# Running target/debug/backend
+```
+
+The backend will start on **`http://localhost:6889`**
+
+#### 3. Start the Frontend (Next.js)
+Open a **new terminal window/tab** and run:
+
+```bash
+# Navigate to frontend directory (from project root)
+cd frontend
+
+# Install dependencies (first time only)
+npm install
+
+# Start the development server
+npm run dev
+
+# You should see output like:
+# ▲ Next.js 15.3.3 (Turbopack)
+# - Local:        http://localhost:3000
+# - Network:      http://192.168.x.x:3000
+# ✓ Ready in 1777ms
+```
+
+The frontend will start on **`http://localhost:3000`**
+
+#### 4. Open the Application
+Visit `http://localhost:3000` in your web browser to start using AIXcel!
+
+### Quick Test Commands
+
+Once both servers are running, test the API directly:
+
+```bash
+# Health check
+curl http://localhost:6889/health
+
+# Test formula evaluation
+curl -X POST http://localhost:6889/evaluate \
+  -H "Content-Type: application/json" \
+  -d '{"expr":"=SUM(1,2,3)"}'
+# Should return: 6
+
+# List all cells
+curl http://localhost:6889/cells
+```
+
+### Using the Application
+
+1. **Cell Editing**: Double-click any cell to edit it
+2. **Formulas**: Type `=SUM(1,2,3)` or `=AVERAGE(10,20,30)` 
+3. **Cell References**: Use Excel-style references like `=A1+B1`
+4. **Real-time Collaboration**: Open multiple browser tabs to see live updates
+5. **Formatting**: Right-click cells for bold, italic, and color options
+6. **Selection**: Click and drag to select multiple cells
+7. **Keyboard Shortcuts**: 
+   - `Ctrl+C`: Copy selected cells
+   - `Delete`: Clear cell contents
+   - `Enter`: Save cell and move down
+   - `Escape`: Cancel editing
+
+### Stopping the Servers
+
+- **Frontend**: Press `Ctrl+C` in the frontend terminal
+- **Backend**: Press `Ctrl+C` in the backend terminal
+
+### Troubleshooting
+
+**Port Already in Use:**
+```bash
+# If port 3000 is busy, Next.js will automatically use 3001
+# If port 6889 is busy, kill existing processes:
+pkill -f "target/debug/backend"
+```
+
+**CORS Issues:**
+The backend is configured to accept requests from:
+- `http://localhost:3000`
+- `http://127.0.0.1:3000` 
+- `http://192.168.10.161:3000`
+
+**Build Issues:**
+```bash
+# Backend: Update Rust
+rustup update
+
+# Frontend: Clear cache and reinstall
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+```----|-------------|
+| **Excel Formula Engine** | ✅ | SUM, AVERAGE functions with cell references (A1, B2, etc.) |
+| **Real-time Collaboration** | ✅ | WebSocket-based multi-user editing with live updates |
+| **Data Persistence** | ✅ | SQLite storage with cell formatting support |
+| **REST API** | ✅ | Full CRUD operations for cells and formula evaluation |
+| **Virtual Grid** | ✅ | Efficient rendering for large datasets |
+| **Bulk Operations** | ✅ | Transaction-based bulk cell updates |
+| **Cell Formatting** | ✅ | Font weight, style, and background color |
+| **Context Menus** | ✅ | Right-click cell operations |t-features)
+2. [Quick Start](#quick-start)
+3. [Architecture](#architecture)
+4. [API Endpoints](#api-endpoints)
+5. [Development Status](#development-status)
+6. [Planned Features](#planned-features)
+7. [Contributing](#contributing)
+8. [License](#license)1. [Current Features](#current-features)
+2. [Quick Start](#quick-start)
+3. [Architecture](#architecture)
+4. [API Endpoints](#api-endpoints)
+5. [Development Status](#development-status)
+6. [Planned Features](#planned-features)
+7. [Contributing](#contributing)
+8. [License](#license)dern, real-time collaborative spreadsheet application built with Rust and React. 
+Currently it provides a solid foundation with Excel formula evaluation, real-time collaboration via WebSockets, and a responsive web interface. The project is designed to eventually become an intelligent data hub with AI agents, live database connectors, and enterprise-grade security.# ✨ What is it?
 
 **AIxcel** turns any React‑based spreadsheet into an intelligent data hub.
 It combines 🚀 AI agents , 🔌 live database & API connectors, and 🛡 enterprise‑grade security so teams can chat with data, auto‑clean sheets, and keep everything in sync—without leaving the grid.
@@ -24,7 +190,7 @@ It combines 🚀 AI agents , 🔌 live database & API connectors, and 
 
 ---
 
-## Features
+## Current Features
 
 | Category      | Highlight                                          |
 | ------------- | -------------------------------------------------- |
@@ -67,19 +233,62 @@ This launches a simple Actix API with a SQLite workbook and a Next.js UI.
 To evaluate a formula directly:
 
 ```bash
-curl -X POST http://localhost:8080/evaluate \
+curl -X POST http://localhost:6889/evaluate \
   -H "Content-Type: application/json" \
   -d '{"expr":"=SUM(1,2,3)"}'
 ```
 
 ## Development Status
 
-- [x] Actix backend with SQLite storage
-- [x] Responsive Next.js frontend
-- [x] Integration tests
-- [x] Excel formula engine
-- [ ] AI connectors and agents
-- [ ] External data connectors
+✅ **Completed**
+- [x] Actix-web backend with SQLite storage  
+- [x] Real-time WebSocket collaboration
+- [x] Responsive Next.js frontend with virtual grid
+- [x] Excel formula engine (SUM, AVERAGE, cell references)
+- [x] Comprehensive integration tests
+- [x] Cell formatting and styling
+- [x] Bulk operations and context menus
+
+🚧 **In Progress**
+- [ ] Enhanced formula functions (COUNT, IF, VLOOKUP, etc.)
+- [ ] Error handling and formula validation
+- [ ] Performance optimizations for large datasets
+
+📋 **Planned Features**
+- [ ] AI-powered natural language formula generation
+- [ ] External data connectors (MySQL, PostgreSQL, APIs)  
+- [ ] Advanced charting and visualization
+- [ ] User authentication and permissions
+- [ ] Export/import functionality
+- [ ] Audit logging and version history
+
+---
+
+## Planned Features
+
+### 🤖 AI & Intelligence
+- **Natural Language Queries**: Convert plain English to formulas
+- **Smart Auto-completion**: Context-aware formula suggestions  
+- **Data Analysis**: Automatic insights and pattern detection
+- **Voice Commands**: Voice-to-SQL conversion
+
+### 🔌 Data Integration  
+- **Database Connectors**: MySQL, PostgreSQL, SQL Server, MongoDB
+- **API Integration**: REST/GraphQL endpoints with scheduling
+- **Cloud Storage**: Google Sheets, Excel Online synchronization
+- **Real-time Streams**: Live data feeds and event-driven updates
+
+### 🛡️ Enterprise Security
+- **Authentication**: SSO integration and user management
+- **Authorization**: Role-based access control (RBAC)
+- **Encryption**: End-to-end data encryption
+- **Compliance**: Comprehensive audit logging
+
+### 📊 Advanced Analytics
+- **Visualization**: Interactive charts and dashboards
+- **Pivot Tables**: Dynamic data summarization
+- **Conditional Formatting**: Rule-based cell styling
+- **Data Validation**: Input constraints and error checking
 
 ---
 

@@ -1,0 +1,25 @@
+# Rust Backend Specific Gitignore
+
+# Build artifacts
+/target/
+**/*.rs.bk
+
+# Database files (backend-specific)
+cells.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Cargo
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,209 +1,467 @@
-.page {
-  --gray-rgb: 0, 0, 0;
-  --gray-alpha-200: rgba(var(--gray-rgb), 0.08);
-  --gray-alpha-100: rgba(var(--gray-rgb), 0.05);
-
-  --button-primary-hover: #383838;
-  --button-secondary-hover: #f2f2f2;
-
-  display: grid;
-  grid-template-rows: 20px 1fr 20px;
-  align-items: center;
-  justify-items: center;
-  min-height: 100svh;
-  padding: 80px;
-  gap: 64px;
-  font-family: var(--font-geist-sans);
-}
-
-@media (prefers-color-scheme: dark) {
-  .page {
-    --gray-rgb: 255, 255, 255;
-    --gray-alpha-200: rgba(var(--gray-rgb), 0.145);
-    --gray-alpha-100: rgba(var(--gray-rgb), 0.06);
-
-    --button-primary-hover: #ccc;
-    --button-secondary-hover: #1a1a1a;
-  }
-}
-
-.main {
+/* Container and layout */
+.container {
+  padding: 0;
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  grid-row-start: 2;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
 }
 
-.main ol {
-  font-family: var(--font-geist-mono);
-  padding-left: 0;
-  margin: 0;
-  font-size: 14px;
-  line-height: 24px;
-  letter-spacing: -0.01em;
-  list-style-position: inside;
+/* Header area */
+.header {
+  background: linear-gradient(135deg, #2c5aa0 0%, #3d72b4 100%);
+  color: white;
+  padding: 15px 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.main li:not(:last-of-type) {
-  margin-bottom: 8px;
-}
-
-.main code {
-  font-family: inherit;
-  background: var(--gray-alpha-100);
-  padding: 2px 4px;
-  border-radius: 4px;
+.header h1 {
+  margin: 0 0 10px 0;
+  font-size: 24px;
   font-weight: 600;
 }
 
-.ctas {
+/* Toolbar */
+.toolbar {
   display: flex;
-  gap: 16px;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.ctas a {
-  appearance: none;
-  border-radius: 128px;
-  height: 48px;
-  padding: 0 20px;
-  border: none;
-  border: 1px solid transparent;
-  transition:
-    background 0.2s,
-    color 0.2s,
-    border-color 0.2s;
-  cursor: pointer;
+.selectedCellInfo {
+  background: rgba(255,255,255,0.2);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+  min-width: 120px;
+}
+
+.formulaBar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  line-height: 20px;
+  gap: 10px;
+  flex: 1;
+}
+
+.formulaBar label {
   font-weight: 500;
 }
 
-a.primary {
-  background: var(--foreground);
-  color: var(--background);
-  gap: 8px;
+.formulaInput {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  min-width: 200px;
 }
 
-a.secondary {
-  border-color: var(--gray-alpha-200);
-  min-width: 158px;
+.evalButton {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
 }
 
-.footer {
-  grid-row-start: 3;
+.evalButton:hover {
+  background: #218838;
+}
+
+/* Formatting toolbar */
+.formattingBar {
   display: flex;
-  gap: 24px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
 }
 
-.footer a {
+.formatButton {
+  background: white;
+  border: 1px solid #dee2e6;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.formatButton:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+}
+
+.formatButton.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.colorPicker {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Context menu */
+.contextMenu {
+  position: fixed;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  min-width: 140px;
+  padding: 4px 0;
+}
+
+.contextMenuItem {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: #212529;
+  transition: background-color 0.1s;
+}
+
+.contextMenuItem:hover {
+  background: #f8f9fa;
+}
+
+.contextMenuSeparator {
+  margin: 4px 0;
+  border: none;
+  border-top: 1px solid #dee2e6;
+}
+
+/* Spreadsheet area */
+.spreadsheet {
+  flex: 1;
+  overflow: auto;
+  background: white;
+  border: 1px solid #dee2e6;
+  margin: 0;
+  position: relative;
+  max-height: calc(100vh - 200px);
+}
+
+.spreadsheetContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Grid container for infinite scrolling */
+.gridContainer {
+  position: relative;
+  background: white;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+/* Column headers */
+.columnHeaders {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 2px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Corner cell (top-left) */
+.cornerCell {
+  background: linear-gradient(135deg, #f1f3f4 0%, #e8eaed 100%);
+  border-right: 2px solid #dee2e6;
+  border-bottom: 2px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+  box-sizing: border-box;
+}
+
+/* Column headers (A, B, C...) */
+.columnHeader {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-right: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 12px;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  position: absolute;
+  top: 0;
+}
+
+.columnHeader:hover {
+  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+  color: #212529;
+}
+
+/* Row layout */
+.row {
+  position: absolute;
+  display: flex;
+  left: 0;
+  width: 100%;
+}
+
+/* Row headers (1, 2, 3...) */
+.rowHeader {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-right: 2px solid #dee2e6;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 12px;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.rowHeader:hover {
+  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+  color: #212529;
+}
+
+/* Individual cells */
+.cell {
+  border: 1px solid #dee2e6;
+  border-left: none;
+  border-top: none;
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: white;
+  cursor: cell;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+  font-size: 14px;
+  color: #212529;
+  user-select: none;
+}
+
+.cell:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  transform: scale(1.01);
+  z-index: 1;
+}
+
+/* Selected cell */
+.cell.selectedCell {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%) !important;
+  border: 1px solid #2196f3 !important;
+  color: #212529 !important;
+  box-shadow: inset 0 0 0 1px rgba(33, 150, 243, 0.2);
+  z-index: 1;
+}
+
+/* Primary selected cell (last clicked) */
+.cell.primarySelectedCell {
+  background: linear-gradient(135deg, #bbdefb 0%, #e1bee7 100%) !important;
+  border: 2px solid #1976d2 !important;
+  box-shadow: 0 0 8px rgba(25, 118, 210, 0.4), inset 0 0 0 1px rgba(25, 118, 210, 0.3);
+  color: #212529 !important;
+  z-index: 2;
+  position: relative;
+}
+
+/* Extension handle (fill handle) */
+.extensionHandle {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 6px;
+  height: 6px;
+  background: #1976d2;
+  border: 1px solid white;
+  cursor: crosshair;
+  z-index: 15;
+  border-radius: 1px;
+  transition: all 0.2s ease;
+}
+
+.extensionHandle:hover {
+  background: #1565c0;
+  width: 8px;
+  height: 8px;
+  bottom: -4px;
+  right: -4px;
+  box-shadow: 0 0 6px rgba(21, 101, 192, 0.5);
+}
+
+/* Cell input for editing */
+.cellInput {
+  width: 100%;
+  height: 100%;
+  border: 2px solid #4CAF50;
+  outline: none;
+  padding: 4px 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background: white;
+  color: #212529;
+  box-sizing: border-box;
+  border-radius: 3px;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.4);
+  z-index: 20;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.cellInput:focus {
+  border-color: #2196F3;
+  box-shadow: 0 0 15px rgba(33, 150, 243, 0.5);
+}
+
+/* Cell content */
+.cell div,
+.cell span {
+  padding: 4px 6px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #212529;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+/* Scrollbar styling */
+.spreadsheet::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.spreadsheet::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.spreadsheet::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 6px;
+}
+
+.spreadsheet::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* WebSocket connection status */
+.connectionStatus {
   display: flex;
   align-items: center;
   gap: 8px;
+  background: rgba(255,255,255,0.2);
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 12px;
+  transition: all 0.3s ease;
 }
 
-.footer img {
-  flex-shrink: 0;
+.connectionStatus.connected {
+  color: #28a745;
 }
 
-/* Enable hover only on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
-  a.primary:hover {
-    background: var(--button-primary-hover);
-    border-color: transparent;
-  }
-
-  a.secondary:hover {
-    background: var(--button-secondary-hover);
-    border-color: transparent;
-  }
-
-  .footer a:hover {
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
+.connectionStatus.disconnected {
+  color: #dc3545;
 }
 
-@media (max-width: 600px) {
-  .page {
-    padding: 32px;
-    padding-bottom: 80px;
-  }
-
-  .main {
-    align-items: center;
-  }
-
-  .main ol {
-    text-align: center;
-  }
-
-  .ctas {
-    flex-direction: column;
-  }
-
-  .ctas a {
-    font-size: 14px;
-    height: 40px;
-    padding: 0 16px;
-  }
-
-  a.secondary {
-    min-width: auto;
-  }
-
-  .footer {
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-  }
+.connectionDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
 }
 
-@media (prefers-color-scheme: dark) {
-  .logo {
-    filter: invert();
-  }
-}
-.container {
-  padding: 1rem;
-  max-width: 800px;
-  margin: 0 auto;
+.connected .connectionDot {
+  background: #28a745;
+  box-shadow: 0 0 6px rgba(40, 167, 69, 0.5);
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 1rem;
+.disconnected .connectionDot {
+  background: #dc3545;
+  box-shadow: 0 0 6px rgba(220, 53, 69, 0.5);
 }
 
-.table th,
-.table td {
-  border: 1px solid #ccc;
-  padding: 0.5rem;
-  text-align: left;
-}
-
-.form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.form input {
-  flex: 1 1 80px;
-  padding: 0.5rem;
-}
-
-.form button {
-  padding: 0.5rem 1rem;
-}
-
-@media (max-width: 600px) {
-  .form {
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .toolbar {
     flex-direction: column;
     align-items: stretch;
+  }
+  
+  .formulaBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+  }
+  
+  .formulaInput {
+    min-width: auto;
+  }
+}
+
+/* Focus states */
+.formulaInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+}
+
+.evalButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+}
+
+/* Animation for cell selection */
+.cell.selectedCell,
+.cell.primarySelectedCell {
+  animation: cellSelect 0.2s ease-out;
+}
+
+@keyframes cellSelect {
+  from {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
   }
 }

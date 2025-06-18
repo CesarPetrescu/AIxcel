@@ -22,6 +22,14 @@ download
 Use code with caution.
 IGNORE_WHEN_COPYING_END
 
+## Implementation TODO
+
+- [x] Basic REST API using Rust and SQLite
+- [x] Responsive Next.js UI
+- [x] Excel formula engine
+- [ ] AI-powered functions
+- [ ] External connectors
+
 Feature: Context-Aware Session Management
 
 What it does: 

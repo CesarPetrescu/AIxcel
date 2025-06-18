@@ -55,18 +55,31 @@ Sources • Excel DirectQuery ([learn.microsoft.com][1]) • App‑Script→My
 ## Quick Start
 
 ```bash
-# 1. clone
-git clone https://github.com/your‑org/aicells.git
-cd aicells
+# backend
+cargo run --manifest-path backend/Cargo.toml
 
-# 2. configure env
-cp .env.sample .env   # then edit values
-
-# 3. run dev stack (React + API + vector DB)
-docker compose up --build
+# frontend
+cd frontend && npm run dev
 ```
 
-> **Tip** First run seeds a demo sheet hooked to an in‑container SQLite DB.
+This launches a simple Actix API with a SQLite workbook and a Next.js UI.
+
+To evaluate a formula directly:
+
+```bash
+curl -X POST http://localhost:8080/evaluate \
+  -H "Content-Type: application/json" \
+  -d '{"expr":"=SUM(1,2,3)"}'
+```
+
+## Development Status
+
+- [x] Actix backend with SQLite storage
+- [x] Responsive Next.js frontend
+- [x] Integration tests
+- [x] Excel formula engine
+- [ ] AI connectors and agents
+- [ ] External data connectors
 
 ---
 

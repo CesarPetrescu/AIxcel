@@ -5,12 +5,14 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://192.168.10.161:6889';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const sheet = request.nextUrl.searchParams.get('sheet') || 'default';
+    const cells = body.cells.map((c: any) => ({ ...c, sheet }));
     const response = await fetch(`${BACKEND_URL}/cells/clear`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ cells }),
     });
     
     if (!response.ok) {

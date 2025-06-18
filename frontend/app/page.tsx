@@ -60,8 +60,9 @@ export default function Home() {
 
   // WebSocket connection setup
   useEffect(() => {
-    const base = API_BASE_URL || window.location.origin;
-    const wsUrl = base.replace('http', 'ws') + '/ws';
+    // Use the configured backend URL for WebSocket connection
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://192.168.10.161:6889';
+    const wsUrl = backendUrl.replace('http', 'ws') + '/ws';
     const websocket = new WebSocket(wsUrl);
     
     websocket.onopen = () => {
@@ -125,7 +126,8 @@ export default function Home() {
   // Initial data fetch
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const url = API_BASE_URL ? `${API_BASE_URL}/cells` : '/cells';
+      // Always use the Next.js API route instead of direct backend connection
+      const url = '/api/cells';
       fetch(url)
         .then((res) => res.json())
         .then(setCells)
@@ -727,7 +729,7 @@ export default function Home() {
       background_color: formatting?.background_color,
     };
     
-    const url = API_BASE_URL ? `${API_BASE_URL}/cells` : '/cells';
+    const url = '/api/cells';
     await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -746,7 +748,7 @@ export default function Home() {
   };
 
   const updateCellsBulk = async (cellsToUpdate: Cell[]) => {
-    const url = API_BASE_URL ? `${API_BASE_URL}/cells/bulk` : '/cells/bulk';
+    const url = '/api/cells/bulk';
     await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -762,7 +764,7 @@ export default function Home() {
   };
 
   const clearCellsBulk = async (positions: {row: number, col: number}[]) => {
-    const url = API_BASE_URL ? `${API_BASE_URL}/cells/clear` : '/cells/clear';
+    const url = '/api/cells/clear';
     await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -961,7 +963,7 @@ export default function Home() {
     if (!formula) return;
     
     try {
-      const url = API_BASE_URL ? `${API_BASE_URL}/evaluate` : '/evaluate';
+      const url = '/api/evaluate';
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

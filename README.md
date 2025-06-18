@@ -32,6 +32,27 @@ The backend will listen on `http://localhost:6889` and the frontend on `http://l
    ```
 3. Open <http://localhost:3000> in your browser.
 
+## Testing
+
+The backend includes a comprehensive test suite that validates all functionality while preserving existing data:
+
+```bash
+cd backend
+./run_tests.sh      # Interactive test runner
+./test_api.sh       # Full comprehensive test suite
+```
+
+The test suite includes:
+- ✅ Basic cell operations (CRUD)
+- ✅ Cell formatting (bold, italic, colors)
+- ✅ Formula evaluation (SUM, AVERAGE, arithmetic)
+- ✅ Formula cells with cell references
+- ✅ Bulk operations and performance testing
+- ✅ Edge cases and error handling
+- ✅ Data backup/restore (non-destructive testing)
+
+See `backend/TEST_README.md` for detailed testing documentation.
+
 ## API Example
 
 Evaluate a formula directly:

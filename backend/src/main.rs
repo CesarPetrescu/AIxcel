@@ -98,7 +98,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
             Ok(ws::Message::Ping(msg)) => ctx.pong(&msg),
             Ok(ws::Message::Text(text)) => {
                 // Handle incoming cell updates
-                if let Ok(cell_update) = serde_json::from_str::<CellUpdate>(&text) {
+                if let Ok(_cell_update) = serde_json::from_str::<CellUpdate>(&text) {
                     // Broadcast to all other sessions
                     let sessions = self.sessions.lock().unwrap();
                     for (session_id, addr) in sessions.iter() {
@@ -378,9 +378,12 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(
                 Cors::default()
-                    .allow_any_origin()
+                    .allowed_origin("http://localhost:3000")
+                    .allowed_origin("http://127.0.0.1:3000")
+                    .allowed_origin("http://192.168.10.161:3000")
                     .allow_any_method()
                     .allow_any_header()
+                    .supports_credentials()
             )
             .app_data(data.clone())
             .route("/health", web::get().to(health))

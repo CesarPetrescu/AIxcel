@@ -28,6 +28,9 @@ const getVisibleArea = (containerWidth: number, containerHeight: number, scrollL
 };
 
 export default function Home() {
+  // API base URL - backend is always on localhost:6889
+  const API_BASE_URL = 'http://localhost:6889';
+
   const [cells, setCells] = useState<Cell[]>([]);
   const [selectedCells, setSelectedCells] = useState<{row: number, col: number}[]>([]);
   const [primarySelection, setPrimarySelection] = useState<{row: number, col: number} | null>(null);
@@ -57,7 +60,8 @@ export default function Home() {
 
   // WebSocket connection setup
   useEffect(() => {
-    const websocket = new WebSocket('ws://localhost:6889/ws');
+    const wsUrl = API_BASE_URL.replace('http', 'ws') + '/ws';
+    const websocket = new WebSocket(wsUrl);
     
     websocket.onopen = () => {
       console.log('WebSocket connected');
@@ -119,10 +123,12 @@ export default function Home() {
 
   // Initial data fetch
   useEffect(() => {
-    fetch("http://localhost:6889/cells")
-      .then((res) => res.json())
-      .then(setCells)
-      .catch(console.error);
+    if (typeof window !== 'undefined') {
+      fetch(`${API_BASE_URL}/cells`)
+        .then((res) => res.json())
+        .then(setCells)
+        .catch(console.error);
+    }
   }, []);
 
   // Handle container resize
@@ -256,6 +262,9 @@ export default function Home() {
     navigator.clipboard.writeText(value);
   };
 
+  // Helper function to detect patterns in selected values
+  // Currently unused but will be used for auto-fill functionality
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const detectPattern = (values: string[]): string[] => {
     if (values.length === 0) return [""];
     if (values.length === 1) return [values[0]]; // Repeat single value
@@ -709,32 +718,32 @@ export default function Home() {
       background_color: formatting?.background_color,
     };
     
-    await fetch("http://localhost:6889/cells", {
+    await fetch(`${API_BASE_URL}/cells`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(cellData),
     });
-    const res = await fetch("http://localhost:6889/cells");
+    const res = await fetch(`${API_BASE_URL}/cells`);
     setCells(await res.json());
   };
 
   const updateCellsBulk = async (cellsToUpdate: Cell[]) => {
-    await fetch("http://localhost:6889/cells/bulk", {
+    await fetch(`${API_BASE_URL}/cells/bulk`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(cellsToUpdate),
     });
-    const res = await fetch("http://localhost:6889/cells");
+    const res = await fetch(`${API_BASE_URL}/cells`);
     setCells(await res.json());
   };
 
   const clearCellsBulk = async (positions: {row: number, col: number}[]) => {
-    await fetch("http://localhost:6889/cells/clear", {
+    await fetch(`${API_BASE_URL}/cells/clear`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cells: positions }),
     });
-    const res = await fetch("http://localhost:6889/cells");
+    const res = await fetch(`${API_BASE_URL}/cells`);
     setCells(await res.json());
   };
 
@@ -854,7 +863,7 @@ export default function Home() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleCellKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleCellSubmit();
     } else if (e.key === 'Escape') {
@@ -928,7 +937,7 @@ export default function Home() {
     if (!formula) return;
     
     try {
-      const res = await fetch("http://localhost:6889/evaluate", {
+      const res = await fetch(`${API_BASE_URL}/evaluate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ expr: formula }),
@@ -1115,7 +1124,7 @@ export default function Home() {
                           value={editValue}
                           onChange={(e) => handleCellEdit(e.target.value)}
                           onBlur={handleCellSubmit}
-                          onKeyDown={handleKeyDown}
+                          onKeyDown={handleCellKeyDown}
                           className={styles.cellInput}
                           autoFocus
                         />

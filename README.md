@@ -1,426 +1,51 @@
+# AIXcel
 
----
-**AIX## Table of1. [Current Features]| Component | Status | Description ## Quick Start
+AIXcel is a simple spreadsheet prototype written in **Rust** and **Next.js**. It evaluates Excel-style formulas, stores cell data in SQLite, and supports real-time collaboration via WebSockets.
 
-### Prerequisites
+## Features
 
-Before running AIXcel, ensure you have:
+- Excel formula engine with SUM and AVERAGE functions
+- Real-time collaborative editing
+- Persistent SQLite storage
+- REST API for cell operations and formula evaluation
+- Responsive grid interface implemented in React
 
-- **Rust** (latest stable version) - [Install from rustup.rs](https://rustup.rs/)
-- **Node.js** (v18 or higher) - [Install from nodejs.org](https://nodejs.org/)
-- **npm** (comes with Node.js)
+## Quick Start
 
-### Step-by-Step Setup
+Use the provided startup script to run both servers:
 
-#### Option A: Quick Start (Recommended)
-
-**Linux/Mac:**
 ```bash
-# Navigate to project directory
-cd AIXcel/AIxcel
-
-# Run the startup script (starts both servers)
 ./start.sh
 ```
 
-**Windows:**
-```batch
-# Navigate to project directory
-cd AIXcel\AIxcel
+The backend will listen on `http://localhost:6889` and the frontend on `http://localhost:3000`.
 
-# Run the startup script (starts both servers)
-start.bat
-```
+## Manual Setup
 
-This will automatically start both backend and frontend servers and display helpful information.
-
-#### Option B: Manual Setup
-
-#### 1. Clone and Navigate to Project
-```bash
-git clone <repository-url>
-cd AIXcel/AIxcel  # Note: there are two AIxcel directories
-```
-
-#### 2. Start the Backend (Rust/Actix)
-```bash
-# Navigate to backend directory
-cd backend
-
-# Run the Rust server (this will compile and start)
-cargo run
-
-# You should see output like:
-# Compiling backend v0.1.0 (/path/to/backend)
-# Finished dev profile [unoptimized + debuginfo] target(s)
-# Running target/debug/backend
-```
-
-The backend will start on **`http://localhost:6889`**
-
-#### 3. Start the Frontend (Next.js)
-Open a **new terminal window/tab** and run:
-
-```bash
-# Navigate to frontend directory (from project root)
-cd frontend
-
-# Install dependencies (first time only)
-npm install
-
-# Start the development server
-npm run dev
-
-# You should see output like:
-# ▲ Next.js 15.3.3 (Turbopack)
-# - Local:        http://localhost:3000
-# - Network:      http://192.168.x.x:3000
-# ✓ Ready in 1777ms
-```
-
-The frontend will start on **`http://localhost:3000`**
-
-#### 4. Open the Application
-Visit `http://localhost:3000` in your web browser to start using AIXcel!
-
-### Quick Test Commands
-
-Once both servers are running, test the API directly:
-
-```bash
-# Health check
-curl http://localhost:6889/health
-
-# Test formula evaluation
-curl -X POST http://localhost:6889/evaluate \
-  -H "Content-Type: application/json" \
-  -d '{"expr":"=SUM(1,2,3)"}'
-# Should return: 6
-
-# List all cells
-curl http://localhost:6889/cells
-```
-
-### Using the Application
-
-1. **Cell Editing**: Double-click any cell to edit it
-2. **Formulas**: Type `=SUM(1,2,3)` or `=AVERAGE(10,20,30)` 
-3. **Cell References**: Use Excel-style references like `=A1+B1`
-4. **Real-time Collaboration**: Open multiple browser tabs to see live updates
-5. **Formatting**: Right-click cells for bold, italic, and color options
-6. **Selection**: Click and drag to select multiple cells
-7. **Keyboard Shortcuts**: 
-   - `Ctrl+C`: Copy selected cells
-   - `Delete`: Clear cell contents
-   - `Enter`: Save cell and move down
-   - `Escape`: Cancel editing
-
-### Stopping the Servers
-
-- **Frontend**: Press `Ctrl+C` in the frontend terminal
-- **Backend**: Press `Ctrl+C` in the backend terminal
-
-### Troubleshooting
-
-**Port Already in Use:**
-```bash
-# If port 3000 is busy, Next.js will automatically use 3001
-# If port 6889 is busy, kill existing processes:
-pkill -f "target/debug/backend"
-```
-
-**CORS Issues:**
-The backend is configured to accept requests from:
-- `http://localhost:3000`
-- `http://127.0.0.1:3000` 
-- `http://192.168.10.161:3000`
-
-**Build Issues:**
-```bash
-# Backend: Update Rust
-rustup update
-
-# Frontend: Clear cache and reinstall
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-```----|-------------|
-| **Excel Formula Engine** | ✅ | SUM, AVERAGE functions with cell references (A1, B2, etc.) |
-| **Real-time Collaboration** | ✅ | WebSocket-based multi-user editing with live updates |
-| **Data Persistence** | ✅ | SQLite storage with cell formatting support |
-| **REST API** | ✅ | Full CRUD operations for cells and formula evaluation |
-| **Virtual Grid** | ✅ | Efficient rendering for large datasets |
-| **Bulk Operations** | ✅ | Transaction-based bulk cell updates |
-| **Cell Formatting** | ✅ | Font weight, style, and background color |
-| **Context Menus** | ✅ | Right-click cell operations |t-features)
-2. [Quick Start](#quick-start)
-3. [Architecture](#architecture)
-4. [API Endpoints](#api-endpoints)
-5. [Development Status](#development-status)
-6. [Planned Features](#planned-features)
-7. [Contributing](#contributing)
-8. [License](#license)1. [Current Features](#current-features)
-2. [Quick Start](#quick-start)
-3. [Architecture](#architecture)
-4. [API Endpoints](#api-endpoints)
-5. [Development Status](#development-status)
-6. [Planned Features](#planned-features)
-7. [Contributing](#contributing)
-8. [License](#license)dern, real-time collaborative spreadsheet application built with Rust and React. 
-Currently it provides a solid foundation with Excel formula evaluation, real-time collaboration via WebSockets, and a responsive web interface. The project is designed to eventually become an intelligent data hub with AI agents, live database connectors, and enterprise-grade security.# ✨ What is it?
-
-**AIxcel** turns any React‑based spreadsheet into an intelligent data hub.
-It combines 🚀 AI agents , 🔌 live database & API connectors, and 🛡 enterprise‑grade security so teams can chat with data, auto‑clean sheets, and keep everything in sync—without leaving the grid.
-
----
-
-## Table of Contents
-
-1. [Features](#features)
-2. [Supported Connectors](#supported-connectors)
-3. [Quick Start](#quick-start)
-4. [How to Connect](#how-to-connect)
-
-   * [Relational DB](#connecting-to-a-relational-database)
-   * [REST / GraphQL API](#connecting-to-a-rest--graphql-api)
-5. [Security Notes](#security-notes)
-6. [Deployment](#deployment)
-7. [Contributing](#contributing)
-8. [License](#license)
-
----
-
-## Current Features
-
-| Category      | Highlight                                          |
-| ------------- | -------------------------------------------------- |
-| AI‑First UX   | Natural‑language formula builder & explainer       |
-| Agents        | ReAct auto‑completion, data clean‑up, voice SQL    |
-| Live Data     | ODBC/JDBC DirectQuery, REST/GraphQL polling        |
-| Scale         | Virtualised grid handles 1 M+ rows                 |
-| Collaboration | CRDT co‑edit + database‑safe locks                 |
-| Security      | TLS‑only connectors, vault‑stored creds, audit XML |
-
-Sources • Excel DirectQuery ([learn.microsoft.com][1]) • App‑Script→MySQL ([hevodata.com][2]) • Coefficient one‑click DB links ([coefficient.io][3]) • Zapier two‑way sync ([zapier.com][4]) • API Connector (Superjoin) ([superjoin.ai][5]) • 100 k‑row virtualisation proof ([reddit.com][6]) • Awesome Table 15 s refresh ([support.awesome-table.com][7]) • OWASP encrypted‑DB guidance ([cheatsheetseries.owasp.org][8]) • Hugging Face AISheets multi‑model ([superjoin.ai][9])
-
----
-
-## Supported Connectors
-
-| Type                 | Examples                                 | Notes                                                           |
-| -------------------- | ---------------------------------------- | --------------------------------------------------------------- |
-| **Relational DB**    | MySQL, PostgreSQL, SQL Server, Snowflake | ODBC/JDBC or native drivers; DirectQuery supported              |
-| **Cloud Warehouses** | BigQuery, Redshift, Databricks           | Via JDBC with token auth                                        |
-| **NoSQL**            | MongoDB, DynamoDB                        | REST or Data API                                                |
-| **SaaS / CRM**       | Salesforce, HubSpot, Stripe, Netsuite    | One‑click via Coefficient‑style templates ([coefficient.io][3]) |
-| **REST / GraphQL**   | Any JSON, XML, CSV endpoint              | Schedule pulls every 1 min‑1 day                                |
-| **Automation Hubs**  | Zapier, Make (Integromat)                | Event‑driven row ↔ DB sync ([zapier.com][4])                    |
-
----
-
-## Quick Start
-
-```bash
-# backend
-cargo run --manifest-path backend/Cargo.toml
-
-# frontend
-cd frontend && npm run dev
-```
-
-This launches a simple Actix API with a SQLite workbook and a Next.js UI.
-
-To evaluate a formula directly:
-
-```bash
-curl -X POST http://localhost:6889/evaluate \
-  -H "Content-Type: application/json" \
-  -d '{"expr":"=SUM(1,2,3)"}'
-```
-
-## Development Status
-
-✅ **Completed**
-- [x] Actix-web backend with SQLite storage  
-- [x] Real-time WebSocket collaboration
-- [x] Responsive Next.js frontend with virtual grid
-- [x] Excel formula engine (SUM, AVERAGE, cell references)
-- [x] Comprehensive integration tests
-- [x] Cell formatting and styling
-- [x] Bulk operations and context menus
-
-🚧 **In Progress**
-- [ ] Enhanced formula functions (COUNT, IF, VLOOKUP, etc.)
-- [ ] Error handling and formula validation
-- [ ] Performance optimizations for large datasets
-
-📋 **Planned Features**
-- [ ] AI-powered natural language formula generation
-- [ ] External data connectors (MySQL, PostgreSQL, APIs)  
-- [ ] Advanced charting and visualization
-- [ ] User authentication and permissions
-- [ ] Export/import functionality
-- [ ] Audit logging and version history
-
----
-
-## Planned Features
-
-### 🤖 AI & Intelligence
-- **Natural Language Queries**: Convert plain English to formulas
-- **Smart Auto-completion**: Context-aware formula suggestions  
-- **Data Analysis**: Automatic insights and pattern detection
-- **Voice Commands**: Voice-to-SQL conversion
-
-### 🔌 Data Integration  
-- **Database Connectors**: MySQL, PostgreSQL, SQL Server, MongoDB
-- **API Integration**: REST/GraphQL endpoints with scheduling
-- **Cloud Storage**: Google Sheets, Excel Online synchronization
-- **Real-time Streams**: Live data feeds and event-driven updates
-
-### 🛡️ Enterprise Security
-- **Authentication**: SSO integration and user management
-- **Authorization**: Role-based access control (RBAC)
-- **Encryption**: End-to-end data encryption
-- **Compliance**: Comprehensive audit logging
-
-### 📊 Advanced Analytics
-- **Visualization**: Interactive charts and dashboards
-- **Pivot Tables**: Dynamic data summarization
-- **Conditional Formatting**: Rule-based cell styling
-- **Data Validation**: Input constraints and error checking
-
----
-
-## How to Connect
-
-### Connecting to a Relational Database
-
-1. **Install driver**
-
+1. **Backend**
    ```bash
-   docker exec api pip install mysql‑connector‑python
+   cargo run --manifest-path backend/Cargo.toml
    ```
-2. **Add DSN (encrypted)**
-
-   ```ini
-   # config/connectors.d/mysql-prod.ini
-   [MySales]
-   type = mysql
-   host = db.company.internal
-   port = 3306
-   database = sales
-   username = ${DB_USER}
-   password = ${DB_PASS}
-   ssl_mode = REQUIRE
+2. **Frontend**
+   ```bash
+   cd frontend && npm install && npm run dev
    ```
-3. **Restart back‑end** – it hot‑loads connector manifests.
-4. **Query from the grid**
+3. Open <http://localhost:3000> in your browser.
 
-   ```text
-   /sql MySales
-   SELECT region, SUM(amount) AS revenue
-   FROM orders
-   WHERE order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-   GROUP BY region;
-   ```
+## API Example
 
-The agent translates NLP like **“revenue by region last 90 days”** into the SQL above ([learn.microsoft.com][1]).
-
----
-
-### Connecting to a REST / GraphQL API
-
-> Works for Stripe, Jira, GitHub, or any custom service.
-
-1. **Create YAML spec**
-
-```yaml
-# config/apis/github.yaml
-name: GitHubIssues
-base_url: https://api.github.com
-auth:
-  type: header
-  header: Authorization
-  value: "Bearer ${GITHUB_TOKEN}"
-endpoints:
-  - path: /repos/{owner}/{repo}/issues
-    method: GET
-    params:
-      state: open
-schedule: "every 30m"
-```
-
-2. **Register & run**
+Evaluate a formula directly:
 
 ```bash
-cli connectors:add api config/apis/github.yaml
-cli jobs:start GitHubIssues
+curl -X POST http://localhost:6889/evaluate \
+  -H 'Content-Type: application/json' \
+  -d '{"expr":"=SUM(1,2,3)"}'
 ```
-
-3. **Map into sheet**
-
-```ini
-[SheetMapping]
-endpoint = GitHubIssues
-sheet    = Issues!A1
-mode     = replace   # or append
-```
-
-Behind the scenes the APIBridge polls Superjoin‑style and writes XML deltas ([superjoin.ai][5]).
-
----
-
-## Security Notes
-
-* **TLS 1.2+ only** on all database sockets per OWASP CS §“Transport Layer” ([cheatsheetseries.owasp.org][8])
-* Secrets stored in HashiCorp Vault; never commit DSNs.
-* Row‑level policies propagate from source DB into sheet view.
-* Every agent action is logged to `audit/{date}.xml` (deterministic replay).
-
----
-
-## Deployment
-
-| Target                | File                     | Command                                                 |
-| --------------------- | ------------------------ | ------------------------------------------------------- |
-| **Docker Swarm**      | `deploy/swarm-stack.yml` | `docker stack deploy -c deploy/swarm-stack.yml aicells` |
-| **Kubernetes**        | `helm/`                  | `helm install aicells helm/`                            |
-| **Edge / Air‑gapped** | `edge/compose.yml`       | ships light “Gateway” that syncs when online            |
-
----
 
 ## Contributing
 
-We ♥ PRs!  See **CONTRIBUTING.md** for coding standards, commit message style, and how to run the test suite.
-
-1. Fork → feature branch → PR.
-2. Run `npm run lint && npm test`.
-3. Sign the CLA (bot will prompt).
-
----
+Pull requests are welcome! Please run `cargo test` for the backend and `npm run lint` for the frontend before submitting.
 
 ## License
 
-Apache 2.0.  See [LICENSE](LICENSE) for details.
-
----
-
-### Badges
-
-![build](https://img.shields.io/github/actions/workflow/status/your-org/aicells/ci.yml)
-![license](https://img.shields.io/github/license/your-org/aicells)
-
----
-
-> *Happy spreadsheeting!*
-
-[1]: https://learn.microsoft.com/en-us/power-bi/connect-data/desktop-directquery-about?utm_source=chatgpt.com "DirectQuery in Power BI - Learn Microsoft"
-[2]: https://hevodata.com/learn/google-script-connect-to-mysql/?utm_source=chatgpt.com "Google Script Connect to MySQL | 5 Easy Steps - Hevo Data"
-[3]: https://coefficient.io/?utm_source=chatgpt.com "Coefficient – Data Connectors for Google Sheets & Excel"
-[4]: https://zapier.com/apps/google-sheets/integrations/sql-server?utm_source=chatgpt.com "Google Sheets SQL Server Integration - Quick Connect - Zapier"
-[5]: https://www.superjoin.ai/blog/a-comprehensive-guide-to-connect-rest-api-to-google-sheets?utm_source=chatgpt.com "A comprehensive guide to connect Rest API to Google Sheets"
-[6]: https://www.reddit.com/r/reactjs/comments/1fb9poc/need_help_with_table_virtualization_for_large/?utm_source=chatgpt.com "Need Help with Table Virtualization for Large Data Sets (100k+ rows ..."
-[7]: https://support.awesome-table.com/hc/en-us/articles/115004766069-How-to-automatically-refresh-your-app-if-your-spreadsheet-is-frequently-updated?utm_source=chatgpt.com "How to automatically refresh your app if your spreadsheet is ..."
-[8]: https://cheatsheetseries.owasp.org/cheatsheets/Database_Security_Cheat_Sheet.html?utm_source=chatgpt.com "Database Security - OWASP Cheat Sheet Series"
-[9]: https://www.superjoin.ai/blog/api-connector-for-google-sheets?utm_source=chatgpt.com "API Connector for Google Sheets - Superjoin"
+This project is licensed under the Apache 2.0 License.

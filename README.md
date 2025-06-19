@@ -9,6 +9,7 @@ AIXcel is a simple spreadsheet prototype written in **Rust** and **Next.js**. It
 - Persistent SQLite storage
 - REST API for cell operations and formula evaluation
 - Responsive grid interface implemented in React
+- Unlimited sheets with add/remove controls
 
 ## Quick Start
 

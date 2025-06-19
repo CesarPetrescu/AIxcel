@@ -8,6 +8,7 @@
 - **Responsive Web Interface** – Next.js grid with virtual scrolling
 - **REST API** – CRUD endpoints and formula evaluation
 - **Bulk Operations** – database transactions for multi-cell updates
+- **Unlimited Sheets** – create and delete sheets dynamically
 
 ## Planned Features
 

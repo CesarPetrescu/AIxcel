@@ -465,3 +465,23 @@
     transform: scale(1);
   }
 }
+
+.sheetTabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: #eee;
+}
+
+.sheetTab {
+  padding: 4px 8px;
+  background: #ddd;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.activeSheetTab {
+  background: white;
+  border-bottom: 2px solid #2c5aa0;
+}

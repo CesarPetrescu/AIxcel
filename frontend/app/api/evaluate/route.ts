@@ -5,6 +5,8 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://192.168.10.161:6889';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const sheet = body.sheet || request.nextUrl.searchParams.get('sheet') || 'default';
+    body.sheet = sheet;
     const response = await fetch(`${BACKEND_URL}/evaluate`, {
       method: 'POST',
       headers: {

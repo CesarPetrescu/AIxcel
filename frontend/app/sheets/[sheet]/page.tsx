@@ -264,8 +264,8 @@ export default function SheetPage() {
     const maxRow = Math.max(start.row, end.row);
     const minCol = Math.min(start.col, end.col);
     const maxCol = Math.max(start.col, end.col);
-    
-    const range = [];
+
+    const range: {row: number, col: number}[] = [];
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         range.push({ row: r, col: c });
@@ -295,11 +295,11 @@ export default function SheetPage() {
   };
 
   const selectAllCells = () => {
-    const allCells = [];
+    const allCells: {row: number, col: number}[] = [];
     // Select all visible cells plus a reasonable buffer
     const maxRow = Math.max(visibleArea.endRow, 100);
     const maxCol = Math.max(visibleArea.endCol, 26);
-    
+
     for (let r = 0; r < maxRow; r++) {
       for (let c = 0; c < maxCol; c++) {
         allCells.push({ row: r, col: c });
@@ -336,7 +336,7 @@ export default function SheetPage() {
     const numbers = cleanValues.map(v => parseFloat(v)).filter(n => !isNaN(n));
     if (numbers.length === cleanValues.length && numbers.length >= 2) {
       // Check for arithmetic progression (constant difference)
-      const differences = [];
+      const differences: number[] = [];
       for (let i = 1; i < numbers.length; i++) {
         differences.push(numbers[i] - numbers[i - 1]);
       }
@@ -350,7 +350,7 @@ export default function SheetPage() {
       
       // Check for geometric progression (constant ratio)
       if (numbers.every(n => n !== 0)) {
-        const ratios = [];
+        const ratios: number[] = [];
         for (let i = 1; i < numbers.length; i++) {
           ratios.push(numbers[i] / numbers[i - 1]);
         }
@@ -450,19 +450,16 @@ export default function SheetPage() {
       // Check if prefixes and suffixes are consistent
       if (prefixes.every(p => p === prefixes[0]) && suffixes.every(s => s === suffixes[0])) {
         // Check for arithmetic progression in numbers
-        const numDifferences = [];
+        const numDifferences: number[] = [];
         for (let i = 1; i < numbers.length; i++) {
           numDifferences.push(numbers[i] - numbers[i - 1]);
         }
         
         if (numDifferences.every(d => d === numDifferences[0])) {
           const diff = numDifferences[0];
-          let lastNum = numbers[numbers.length - 1];
-          for (let i = 0; i < count; i++) {
-            lastNum += diff;
-            result.push(`${prefixes[0]}${lastNum}${suffixes[0]}`);
-          }
-          return result;
+          const lastNum = numbers[numbers.length - 1];
+          const nextNum = lastNum + diff;
+          return [`${prefixes[0]}${nextNum}${suffixes[0]}`];
         }
       }
     }
@@ -471,21 +468,18 @@ export default function SheetPage() {
     if (cleanValues.every(v => /^[A-Za-z]$/.test(v))) {
       const isUpperCase = cleanValues[0] === cleanValues[0].toUpperCase();
       const letters = cleanValues.map(v => v.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0));
-      
+
       if (letters.length >= 2) {
         const diff = letters[1] - letters[0];
         if (letters.every((l, i) => i === 0 || l - letters[i-1] === diff)) {
-          let lastLetterCode = letters[letters.length - 1];
-          for (let i = 0; i < count; i++) {
-            lastLetterCode += diff;
-            if (lastLetterCode >= 0 && lastLetterCode < 26) {
-              const nextLetter = String.fromCharCode('A'.charCodeAt(0) + lastLetterCode);
-              result.push(isUpperCase ? nextLetter : nextLetter.toLowerCase());
-            } else {
-              result.push(cleanValues[cleanValues.length - 1]);
-            }
+          const lastLetterCode = letters[letters.length - 1];
+          const nextLetterCode = lastLetterCode + diff;
+          if (nextLetterCode >= 0 && nextLetterCode < 26) {
+            const nextLetter = String.fromCharCode('A'.charCodeAt(0) + nextLetterCode);
+            return [isUpperCase ? nextLetter : nextLetter.toLowerCase()];
+          } else {
+            return [cleanValues[cleanValues.length - 1]];
           }
-          return result;
         }
       }
     }
@@ -547,22 +541,22 @@ export default function SheetPage() {
   const generateSequence = (values: string[], count: number): string[] => {
     if (values.length === 0) return Array(count).fill("");
     if (values.length === 1) return Array(count).fill(values[0]);
-    
+
     const cleanValues = values.map(v => v.trim()).filter(v => v !== "");
     if (cleanValues.length === 0) return Array(count).fill("");
-    
+
     const result: string[] = [];
-    
+
     // Detect the pattern type and generate accordingly
     const numbers = cleanValues.map(v => parseFloat(v)).filter(n => !isNaN(n));
-    
+
     // Numeric arithmetic sequence
     if (numbers.length === cleanValues.length && numbers.length >= 2) {
       const differences: number[] = [];
       for (let i = 1; i < numbers.length; i++) {
         differences.push(numbers[i] - numbers[i - 1]);
       }
-      
+
       if (differences.every(d => Math.abs(d - differences[0]) < 0.0001)) {
         const diff = differences[0];
         let lastNum = numbers[numbers.length - 1];
@@ -713,7 +707,7 @@ export default function SheetPage() {
     if (extendRight) {
       // Extend to the right
       for (let r = minRow; r <= maxRow; r++) {
-        const rowValues = [];
+        const rowValues: string[] = [];
         for (let c = minCol; c <= maxCol; c++) {
           rowValues.push(getCellValue(r, c));
         }
@@ -732,7 +726,7 @@ export default function SheetPage() {
     } else if (extendDown) {
       // Extend downward
       for (let c = minCol; c <= maxCol; c++) {
-        const colValues = [];
+        const colValues: string[] = [];
         for (let r = minRow; r <= maxRow; r++) {
           colValues.push(getCellValue(r, c));
         }

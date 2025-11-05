@@ -196,30 +196,63 @@ async fn list_cells(
     query: web::Query<HashMap<String, String>>,
 ) -> impl Responder {
     let sheet = query.get("sheet").map(|s| s.as_str()).unwrap_or("default");
-    let conn = data.db.lock().unwrap();
-    let mut stmt = conn.prepare("SELECT sheet, row, col, value, font_weight, font_style, background_color FROM cells WHERE sheet = ?1").unwrap();
-    let rows = stmt
-        .query_map(params![sheet], |r| {
-            Ok(Cell {
-                sheet: Some(r.get(0)?),
-                row: r.get(1)?,
-                col: r.get(2)?,
-                value: r.get(3)?,
-                font_weight: r.get(4)?,
-                font_style: r.get(5)?,
-                background_color: r.get(6)?,
-            })
+
+    let conn = match data.db.lock() {
+        Ok(conn) => conn,
+        Err(e) => {
+            eprintln!("Failed to acquire database lock: {}", e);
+            return HttpResponse::InternalServerError().body("Database lock error");
+        }
+    };
+
+    let mut stmt = match conn.prepare("SELECT sheet, row, col, value, font_weight, font_style, background_color FROM cells WHERE sheet = ?1") {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            eprintln!("Failed to prepare statement: {}", e);
+            return HttpResponse::InternalServerError().body("Database query error");
+        }
+    };
+
+    let rows = match stmt.query_map(params![sheet], |r| {
+        Ok(Cell {
+            sheet: Some(r.get(0)?),
+            row: r.get(1)?,
+            col: r.get(2)?,
+            value: r.get(3)?,
+            font_weight: r.get(4)?,
+            font_style: r.get(5)?,
+            background_color: r.get(6)?,
         })
-        .unwrap();
+    }) {
+        Ok(rows) => rows,
+        Err(e) => {
+            eprintln!("Failed to query cells: {}", e);
+            return HttpResponse::InternalServerError().body("Database query error");
+        }
+    };
+
     let mut cells = Vec::new();
     for r in rows {
-        cells.push(r.unwrap());
+        match r {
+            Ok(cell) => cells.push(cell),
+            Err(e) => {
+                eprintln!("Failed to parse cell: {}", e);
+                continue;
+            }
+        }
     }
     HttpResponse::Ok().json(cells)
 }
 
 async fn set_cell(data: web::Data<AppState>, item: web::Json<Cell>) -> impl Responder {
-    let conn = data.db.lock().unwrap();
+    let conn = match data.db.lock() {
+        Ok(conn) => conn,
+        Err(e) => {
+            eprintln!("Failed to acquire database lock: {}", e);
+            return HttpResponse::InternalServerError().body("Database lock error");
+        }
+    };
+
     let mut cell_to_save = item.clone();
     let sheet = cell_to_save
         .sheet
@@ -228,11 +261,16 @@ async fn set_cell(data: web::Data<AppState>, item: web::Json<Cell>) -> impl Resp
     cell_to_save.sheet = Some(sheet.clone());
 
     if cell_to_save.value.starts_with('=') {
-        if let Ok(res) = eval_formula(&cell_to_save.value, &sheet, &conn) {
-            cell_to_save.value = res;
+        match eval_formula(&cell_to_save.value, &sheet, &conn) {
+            Ok(res) => cell_to_save.value = res,
+            Err(e) => {
+                eprintln!("Formula evaluation error: {}", e);
+                return HttpResponse::BadRequest().body(format!("Formula error: {}", e));
+            }
         }
     }
-    conn.execute(
+
+    if let Err(e) = conn.execute(
         "INSERT INTO cells (sheet, row, col, value, font_weight, font_style, background_color)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
          ON CONFLICT(sheet, row, col) DO UPDATE SET
@@ -249,8 +287,10 @@ async fn set_cell(data: web::Data<AppState>, item: web::Json<Cell>) -> impl Resp
             cell_to_save.font_style,
             cell_to_save.background_color,
         ],
-    )
-    .unwrap();
+    ) {
+        eprintln!("Failed to save cell: {}", e);
+        return HttpResponse::InternalServerError().body("Failed to save cell");
+    }
 
     // Broadcast the update to all connected WebSocket sessions
     broadcast_cell_update(&data.sessions, &cell_to_save, "system".to_string());
@@ -259,10 +299,22 @@ async fn set_cell(data: web::Data<AppState>, item: web::Json<Cell>) -> impl Resp
 }
 
 async fn set_cells_bulk(data: web::Data<AppState>, items: web::Json<Vec<Cell>>) -> impl Responder {
-    let conn = data.db.lock().unwrap();
+    let conn = match data.db.lock() {
+        Ok(conn) => conn,
+        Err(e) => {
+            eprintln!("Failed to acquire database lock: {}", e);
+            return HttpResponse::InternalServerError().body("Database lock error");
+        }
+    };
 
     // Start transaction for better performance
-    let tx = conn.unchecked_transaction().unwrap();
+    let tx = match conn.unchecked_transaction() {
+        Ok(tx) => tx,
+        Err(e) => {
+            eprintln!("Failed to start transaction: {}", e);
+            return HttpResponse::InternalServerError().body("Transaction error");
+        }
+    };
 
     for item in items.iter() {
         let mut cell_to_save = item.clone();
@@ -278,7 +330,7 @@ async fn set_cells_bulk(data: web::Data<AppState>, items: web::Json<Vec<Cell>>) 
             }
         }
 
-        tx.execute(
+        if let Err(e) = tx.execute(
             "INSERT INTO cells (sheet, row, col, value, font_weight, font_style, background_color)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
              ON CONFLICT(sheet, row, col) DO UPDATE SET
@@ -295,11 +347,17 @@ async fn set_cells_bulk(data: web::Data<AppState>, items: web::Json<Vec<Cell>>) 
                 cell_to_save.font_style,
                 cell_to_save.background_color,
             ],
-        )
-        .unwrap();
+        ) {
+            eprintln!("Failed to execute bulk insert: {}", e);
+            return HttpResponse::InternalServerError().body("Failed to save cells");
+        }
     }
 
-    tx.commit().unwrap();
+    if let Err(e) = tx.commit() {
+        eprintln!("Failed to commit transaction: {}", e);
+        return HttpResponse::InternalServerError().body("Failed to commit changes");
+    }
+
     HttpResponse::Ok().body("saved")
 }
 
@@ -334,20 +392,38 @@ async fn clear_cells_bulk(
     data: web::Data<AppState>,
     request: web::Json<ClearRequest>,
 ) -> impl Responder {
-    let conn = data.db.lock().unwrap();
+    let conn = match data.db.lock() {
+        Ok(conn) => conn,
+        Err(e) => {
+            eprintln!("Failed to acquire database lock: {}", e);
+            return HttpResponse::InternalServerError().body("Database lock error");
+        }
+    };
 
     // Start transaction for better performance
-    let tx = conn.unchecked_transaction().unwrap();
+    let tx = match conn.unchecked_transaction() {
+        Ok(tx) => tx,
+        Err(e) => {
+            eprintln!("Failed to start transaction: {}", e);
+            return HttpResponse::InternalServerError().body("Transaction error");
+        }
+    };
 
     for pos in request.cells.iter() {
-        tx.execute(
+        if let Err(e) = tx.execute(
             "DELETE FROM cells WHERE sheet = ?1 AND row = ?2 AND col = ?3",
             params![pos.sheet.as_deref().unwrap_or("default"), pos.row, pos.col],
-        )
-        .unwrap();
+        ) {
+            eprintln!("Failed to delete cell: {}", e);
+            return HttpResponse::InternalServerError().body("Failed to clear cells");
+        }
     }
 
-    tx.commit().unwrap();
+    if let Err(e) = tx.commit() {
+        eprintln!("Failed to commit transaction: {}", e);
+        return HttpResponse::InternalServerError().body("Failed to commit changes");
+    }
+
     HttpResponse::Ok().body("cleared")
 }
 

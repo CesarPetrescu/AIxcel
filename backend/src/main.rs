@@ -196,30 +196,63 @@ async fn list_cells(
     query: web::Query<HashMap<String, String>>,
 ) -> impl Responder {
     let sheet = query.get("sheet").map(|s| s.as_str()).unwrap_or("default");
-    let conn = data.db.lock().unwrap();
-    let mut stmt = conn.prepare("SELECT sheet, row, col, value, font_weight, font_style, background_color FROM cells WHERE sheet = ?1").unwrap();
-    let rows = stmt
-        .query_map(params![sheet], |r| {
-            Ok(Cell {
-                sheet: Some(r.get(0)?),
-                row: r.get(1)?,
-                col: r.get(2)?,
-                value: r.get(3)?,
-                font_weight: r.get(4)?,
-                font_style: r.get(5)?,
-                background_color: r.get(6)?,
-            })
+
+    let conn = match data.db.lock() {
+        Ok(conn) => conn,
+        Err(e) => {
+            eprintln!("Failed to acquire database lock: {}", e);
+            return HttpResponse::InternalServerError().body("Database lock error");
+        }
+    };
+
+    let mut stmt = match conn.prepare("SELECT sheet, row, col, value, font_weight, font_style, background_color FROM cells WHERE sheet = ?1") {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            eprintln!("Failed to prepare statement: {}", e);
+            return HttpResponse::InternalServerError().body("Database query error");
+        }
+    };
+
+    let rows = match stmt.query_map(params![sheet], |r| {
+        Ok(Cell {
+            sheet: Some(r.get(0)?),
+            row: r.get(1)?,
+            col: r.get(2)?,
+            value: r.get(3)?,
+            font_weight: r.get(4)?,
+            font_style: r.get(5)?,
+            background_color: r.get(6)?,
         })
-        .unwrap();
+    }) {
+        Ok(rows) => rows,
+        Err(e) => {
+            eprintln!("Failed to query cells: {}", e);
+            return HttpResponse::InternalServerError().body("Database query error");
+        }
+    };
+
     let mut cells = Vec::new();
     for r in rows {
-        cells.push(r.unwrap());
+        match r {
+            Ok(cell) => cells.push(cell),
+            Err(e) => {
+                eprintln!("Failed to parse cell: {}", e);
+                continue;
+            }
+        }
     }
     HttpResponse::Ok().json(cells)
 }
 
 async fn set_cell(data: web::Data<AppState>, item: web::Json<Cell>) -> impl Responder {
-    let conn = data.db.lock().unwrap();
+    let conn = match data.db.lock() {
+        Ok(conn) => conn,
+        Err(e) => {
+            eprintln!("Failed to acquire database lock: {}", e);
+            return HttpResponse::InternalServerError().body("Database lock error");
+        }
+    };
+
     let mut cell_to_save = item.clone();
     let sheet = cell_to_save
         .sheet
@@ -228,11 +261,16 @@ async fn set_cell(data: web::Data<AppState>, item: web::Json<Cell>) -> impl Resp
     cell_to_save.sheet = Some(sheet.clone());
 
     if cell_to_save.value.starts_with('=') {
-        if let Ok(res) = eval_formula(&cell_to_save.value, &sheet, &conn) {
-            cell_to_save.value = res;
+        match eval_formula(&cell_to_save.value, &sheet, &conn) {
+            Ok(res) => cell_to_save.value = res,
+            Err(e) => {
+                eprintln!("Formula evaluation error: {}", e);
+                return HttpResponse::BadRequest().body(format!("Formula error: {}", e));
+            }
         }
     }
-    conn.execute(
+
+    if let Err(e) = conn.execute(
         "INSERT INTO cells (sheet, row, col, value, font_weight, font_style, background_color)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
          ON CONFLICT(sheet, row, col) DO UPDATE SET
@@ -249,8 +287,10 @@ async fn set_cell(data: web::Data<AppState>, item: web::Json<Cell>) -> impl Resp
             cell_to_save.font_style,
             cell_to_save.background_color,
         ],
-    )
-    .unwrap();
+    ) {
+        eprintln!("Failed to save cell: {}", e);
+        return HttpResponse::InternalServerError().body("Failed to save cell");
+    }
 
     // Broadcast the update to all connected WebSocket sessions
     broadcast_cell_update(&data.sessions, &cell_to_save, "system".to_string());
@@ -259,10 +299,22 @@ async fn set_cell(data: web::Data<AppState>, item: web::Json<Cell>) -> impl Resp
 }
 
 async fn set_cells_bulk(data: web::Data<AppState>, items: web::Json<Vec<Cell>>) -> impl Responder {
-    let conn = data.db.lock().unwrap();
+    let conn = match data.db.lock() {
+        Ok(conn) => conn,
+        Err(e) => {
+            eprintln!("Failed to acquire database lock: {}", e);
+            return HttpResponse::InternalServerError().body("Database lock error");
+        }
+    };
 
     // Start transaction for better performance
-    let tx = conn.unchecked_transaction().unwrap();
+    let tx = match conn.unchecked_transaction() {
+        Ok(tx) => tx,
+        Err(e) => {
+            eprintln!("Failed to start transaction: {}", e);
+            return HttpResponse::InternalServerError().body("Transaction error");
+        }
+    };
 
     for item in items.iter() {
         let mut cell_to_save = item.clone();
@@ -278,7 +330,7 @@ async fn set_cells_bulk(data: web::Data<AppState>, items: web::Json<Vec<Cell>>) 
             }
         }
 
-        tx.execute(
+        if let Err(e) = tx.execute(
             "INSERT INTO cells (sheet, row, col, value, font_weight, font_style, background_color)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
              ON CONFLICT(sheet, row, col) DO UPDATE SET
@@ -295,11 +347,17 @@ async fn set_cells_bulk(data: web::Data<AppState>, items: web::Json<Vec<Cell>>) 
                 cell_to_save.font_style,
                 cell_to_save.background_color,
             ],
-        )
-        .unwrap();
+        ) {
+            eprintln!("Failed to execute bulk insert: {}", e);
+            return HttpResponse::InternalServerError().body("Failed to save cells");
+        }
     }
 
-    tx.commit().unwrap();
+    if let Err(e) = tx.commit() {
+        eprintln!("Failed to commit transaction: {}", e);
+        return HttpResponse::InternalServerError().body("Failed to commit changes");
+    }
+
     HttpResponse::Ok().body("saved")
 }
 
@@ -334,20 +392,38 @@ async fn clear_cells_bulk(
     data: web::Data<AppState>,
     request: web::Json<ClearRequest>,
 ) -> impl Responder {
-    let conn = data.db.lock().unwrap();
+    let conn = match data.db.lock() {
+        Ok(conn) => conn,
+        Err(e) => {
+            eprintln!("Failed to acquire database lock: {}", e);
+            return HttpResponse::InternalServerError().body("Database lock error");
+        }
+    };
 
     // Start transaction for better performance
-    let tx = conn.unchecked_transaction().unwrap();
+    let tx = match conn.unchecked_transaction() {
+        Ok(tx) => tx,
+        Err(e) => {
+            eprintln!("Failed to start transaction: {}", e);
+            return HttpResponse::InternalServerError().body("Transaction error");
+        }
+    };
 
     for pos in request.cells.iter() {
-        tx.execute(
+        if let Err(e) = tx.execute(
             "DELETE FROM cells WHERE sheet = ?1 AND row = ?2 AND col = ?3",
             params![pos.sheet.as_deref().unwrap_or("default"), pos.row, pos.col],
-        )
-        .unwrap();
+        ) {
+            eprintln!("Failed to delete cell: {}", e);
+            return HttpResponse::InternalServerError().body("Failed to clear cells");
+        }
     }
 
-    tx.commit().unwrap();
+    if let Err(e) = tx.commit() {
+        eprintln!("Failed to commit transaction: {}", e);
+        return HttpResponse::InternalServerError().body("Failed to commit changes");
+    }
+
     HttpResponse::Ok().body("cleared")
 }
 
@@ -614,5 +690,338 @@ mod tests {
         let bytes = to_bytes(resp.into_body()).await.unwrap();
         let cells: Vec<Cell> = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(cells[0].value, "5");
+    }
+
+    #[actix_rt::test]
+    async fn test_cell_with_formatting() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_db(&conn);
+        let data = web::Data::new(AppState {
+            db: Mutex::new(conn),
+            sessions: Arc::new(Mutex::new(HashMap::new())),
+        });
+        let app = test::init_service(
+            App::new()
+                .app_data(data.clone())
+                .route("/cells", web::post().to(set_cell))
+                .route("/cells", web::get().to(list_cells)),
+        )
+        .await;
+
+        let new_cell = Cell {
+            sheet: Some("test".into()),
+            row: 0,
+            col: 0,
+            value: "Formatted".into(),
+            font_weight: Some("bold".into()),
+            font_style: Some("italic".into()),
+            background_color: Some("#ff0000".into()),
+        };
+        let req = test::TestRequest::post()
+            .uri("/cells")
+            .set_json(&new_cell)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+
+        let req = test::TestRequest::get()
+            .uri("/cells?sheet=test")
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        let bytes = to_bytes(resp.into_body()).await.unwrap();
+        let cells: Vec<Cell> = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(cells[0].value, "Formatted");
+        assert_eq!(cells[0].font_weight, Some("bold".into()));
+        assert_eq!(cells[0].font_style, Some("italic".into()));
+        assert_eq!(cells[0].background_color, Some("#ff0000".into()));
+    }
+
+    #[actix_rt::test]
+    async fn test_bulk_operations() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_db(&conn);
+        let data = web::Data::new(AppState {
+            db: Mutex::new(conn),
+            sessions: Arc::new(Mutex::new(HashMap::new())),
+        });
+        let app = test::init_service(
+            App::new()
+                .app_data(data.clone())
+                .route("/cells/bulk", web::post().to(set_cells_bulk))
+                .route("/cells", web::get().to(list_cells)),
+        )
+        .await;
+
+        let cells = vec![
+            Cell {
+                sheet: Some("test".into()),
+                row: 0,
+                col: 0,
+                value: "1".into(),
+                font_weight: None,
+                font_style: None,
+                background_color: None,
+            },
+            Cell {
+                sheet: Some("test".into()),
+                row: 1,
+                col: 0,
+                value: "2".into(),
+                font_weight: None,
+                font_style: None,
+                background_color: None,
+            },
+            Cell {
+                sheet: Some("test".into()),
+                row: 2,
+                col: 0,
+                value: "3".into(),
+                font_weight: None,
+                font_style: None,
+                background_color: None,
+            },
+        ];
+
+        let req = test::TestRequest::post()
+            .uri("/cells/bulk")
+            .set_json(&cells)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+
+        let req = test::TestRequest::get()
+            .uri("/cells?sheet=test")
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        let bytes = to_bytes(resp.into_body()).await.unwrap();
+        let result_cells: Vec<Cell> = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(result_cells.len(), 3);
+    }
+
+    #[actix_rt::test]
+    async fn test_clear_cells() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_db(&conn);
+        let data = web::Data::new(AppState {
+            db: Mutex::new(conn),
+            sessions: Arc::new(Mutex::new(HashMap::new())),
+        });
+        let app = test::init_service(
+            App::new()
+                .app_data(data.clone())
+                .route("/cells", web::post().to(set_cell))
+                .route("/cells", web::get().to(list_cells))
+                .route("/cells/clear", web::post().to(clear_cells_bulk)),
+        )
+        .await;
+
+        // Create a cell
+        let new_cell = Cell {
+            sheet: Some("test".into()),
+            row: 0,
+            col: 0,
+            value: "Delete Me".into(),
+            font_weight: None,
+            font_style: None,
+            background_color: None,
+        };
+        let req = test::TestRequest::post()
+            .uri("/cells")
+            .set_json(&new_cell)
+            .to_request();
+        test::call_service(&app, req).await;
+
+        // Clear the cell
+        let clear_request = ClearRequest {
+            cells: vec![CellPosition {
+                sheet: Some("test".into()),
+                row: 0,
+                col: 0,
+            }],
+        };
+        let req = test::TestRequest::post()
+            .uri("/cells/clear")
+            .set_json(&clear_request)
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert!(resp.status().is_success());
+
+        // Verify cell is deleted
+        let req = test::TestRequest::get()
+            .uri("/cells?sheet=test")
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        let bytes = to_bytes(resp.into_body()).await.unwrap();
+        let cells: Vec<Cell> = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(cells.len(), 0);
+    }
+
+    #[actix_rt::test]
+    async fn test_formula_with_cell_references() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_db(&conn);
+        let data = web::Data::new(AppState {
+            db: Mutex::new(conn),
+            sessions: Arc::new(Mutex::new(HashMap::new())),
+        });
+        let app = test::init_service(
+            App::new()
+                .app_data(data.clone())
+                .route("/cells", web::post().to(set_cell))
+                .route("/cells", web::get().to(list_cells)),
+        )
+        .await;
+
+        // Create A1 with value 10
+        let cell_a1 = Cell {
+            sheet: Some("test".into()),
+            row: 0,
+            col: 0,
+            value: "10".into(),
+            font_weight: None,
+            font_style: None,
+            background_color: None,
+        };
+        test::call_service(
+            &app,
+            test::TestRequest::post()
+                .uri("/cells")
+                .set_json(&cell_a1)
+                .to_request(),
+        )
+        .await;
+
+        // Create B1 with value 20
+        let cell_b1 = Cell {
+            sheet: Some("test".into()),
+            row: 0,
+            col: 1,
+            value: "20".into(),
+            font_weight: None,
+            font_style: None,
+            background_color: None,
+        };
+        test::call_service(
+            &app,
+            test::TestRequest::post()
+                .uri("/cells")
+                .set_json(&cell_b1)
+                .to_request(),
+        )
+        .await;
+
+        // Create C1 with formula =SUM(A1,B1)
+        let cell_c1 = Cell {
+            sheet: Some("test".into()),
+            row: 0,
+            col: 2,
+            value: "=SUM(A1,B1)".into(),
+            font_weight: None,
+            font_style: None,
+            background_color: None,
+        };
+        let resp = test::call_service(
+            &app,
+            test::TestRequest::post()
+                .uri("/cells")
+                .set_json(&cell_c1)
+                .to_request(),
+        )
+        .await;
+        assert!(resp.status().is_success());
+
+        // Verify C1 contains evaluated result
+        let resp = test::call_service(
+            &app,
+            test::TestRequest::get()
+                .uri("/cells?sheet=test")
+                .to_request(),
+        )
+        .await;
+        let bytes = to_bytes(resp.into_body()).await.unwrap();
+        let cells: Vec<Cell> = serde_json::from_slice(&bytes).unwrap();
+        let cell_c1_result = cells.iter().find(|c| c.row == 0 && c.col == 2).unwrap();
+        assert_eq!(cell_c1_result.value, "30");
+    }
+
+    #[actix_rt::test]
+    async fn test_multiple_sheets() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_db(&conn);
+        let data = web::Data::new(AppState {
+            db: Mutex::new(conn),
+            sessions: Arc::new(Mutex::new(HashMap::new())),
+        });
+        let app = test::init_service(
+            App::new()
+                .app_data(data.clone())
+                .route("/cells", web::post().to(set_cell))
+                .route("/cells", web::get().to(list_cells)),
+        )
+        .await;
+
+        // Add cell to sheet1
+        let cell1 = Cell {
+            sheet: Some("sheet1".into()),
+            row: 0,
+            col: 0,
+            value: "Sheet 1 Data".into(),
+            font_weight: None,
+            font_style: None,
+            background_color: None,
+        };
+        test::call_service(
+            &app,
+            test::TestRequest::post()
+                .uri("/cells")
+                .set_json(&cell1)
+                .to_request(),
+        )
+        .await;
+
+        // Add cell to sheet2
+        let cell2 = Cell {
+            sheet: Some("sheet2".into()),
+            row: 0,
+            col: 0,
+            value: "Sheet 2 Data".into(),
+            font_weight: None,
+            font_style: None,
+            background_color: None,
+        };
+        test::call_service(
+            &app,
+            test::TestRequest::post()
+                .uri("/cells")
+                .set_json(&cell2)
+                .to_request(),
+        )
+        .await;
+
+        // Verify sheet1 only has its data
+        let resp = test::call_service(
+            &app,
+            test::TestRequest::get()
+                .uri("/cells?sheet=sheet1")
+                .to_request(),
+        )
+        .await;
+        let bytes = to_bytes(resp.into_body()).await.unwrap();
+        let cells: Vec<Cell> = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(cells.len(), 1);
+        assert_eq!(cells[0].value, "Sheet 1 Data");
+
+        // Verify sheet2 only has its data
+        let resp = test::call_service(
+            &app,
+            test::TestRequest::get()
+                .uri("/cells?sheet=sheet2")
+                .to_request(),
+        )
+        .await;
+        let bytes = to_bytes(resp.into_body()).await.unwrap();
+        let cells: Vec<Cell> = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(cells.len(), 1);
+        assert_eq!(cells[0].value, "Sheet 2 Data");
     }
 }

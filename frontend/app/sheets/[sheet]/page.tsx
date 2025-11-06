@@ -29,8 +29,6 @@ const getVisibleArea = (containerWidth: number, containerHeight: number, scrollL
 };
 
 export default function SheetPage() {
-  // API base URL can be configured via environment variable
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
   const params = useParams<{ sheet: string }>();
   const sheet = params.sheet || 'default';
 
@@ -50,6 +48,9 @@ export default function SheetPage() {
   const [contextMenu, setContextMenu] = useState<{x: number, y: number, row: number, col: number} | null>(null);
   const [isExtending, setIsExtending] = useState(false);
   const [extensionStart, setExtensionStart] = useState<{row: number, col: number} | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [evaluationResult, setEvaluationResult] = useState<string | null>(null);
   
   // Dynamic grid state
   const [containerSize, setContainerSize] = useState({ width: 1200, height: 800 });
@@ -129,14 +130,25 @@ export default function SheetPage() {
   // Initial data fetch
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Always use the Next.js API route instead of direct backend connection
+      setIsLoading(true);
+      setError(null);
       const url = `/api/cells?sheet=${sheet}`;
       fetch(url)
-        .then((res) => res.json())
-        .then(setCells)
-        .catch(console.error);
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to fetch cells');
+          return res.json();
+        })
+        .then((data) => {
+          setCells(data);
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          console.error('Error fetching cells:', err);
+          setError('Failed to load spreadsheet data');
+          setIsLoading(false);
+        });
     }
-  }, []);
+  }, [sheet]);
 
   // Handle container resize
   useEffect(() => {
@@ -165,13 +177,46 @@ export default function SheetPage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (editingCell) return; // Don't handle global keys when editing a cell
 
+      // Arrow key navigation
+      if (primarySelection && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        let newRow = primarySelection.row;
+        let newCol = primarySelection.col;
+
+        if (e.key === 'ArrowUp') newRow = Math.max(0, newRow - 1);
+        else if (e.key === 'ArrowDown') newRow = newRow + 1;
+        else if (e.key === 'ArrowLeft') newCol = Math.max(0, newCol - 1);
+        else if (e.key === 'ArrowRight') newCol = newCol + 1;
+
+        if (e.shiftKey) {
+          // Extend selection with shift+arrow
+          const range = getRangeFromStartToEnd(selectionStart || primarySelection, { row: newRow, col: newCol });
+          setSelectedCells(range);
+          setPrimarySelection({ row: newRow, col: newCol });
+          if (!selectionStart) setSelectionStart(primarySelection);
+        } else {
+          // Move selection
+          selectSingleCell(newRow, newCol);
+          setSelectionStart(null);
+        }
+        return;
+      }
+
+      // Enter key to edit cell
+      if (primarySelection && e.key === 'Enter') {
+        e.preventDefault();
+        setEditingCell(primarySelection);
+        setEditValue(getCellValue(primarySelection.row, primarySelection.col));
+        return;
+      }
+
       if (primarySelection && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         setEditingCell(primarySelection);
         setEditValue(e.key);
         return;
       }
-      
+
       if (e.key === 'Delete' || e.key === 'Backspace') {
         clearSelectedCells();
       } else if (e.key === 'Escape') {
@@ -189,7 +234,7 @@ export default function SheetPage() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [selectedCells, editingCell]);
+  }, [selectedCells, editingCell, primarySelection, selectionStart]);
 
   const getCellValue = (row: number, col: number) => {
     const cell = cells.find(c => c.row === row && c.col === col);
@@ -219,8 +264,8 @@ export default function SheetPage() {
     const maxRow = Math.max(start.row, end.row);
     const minCol = Math.min(start.col, end.col);
     const maxCol = Math.max(start.col, end.col);
-    
-    const range = [];
+
+    const range: {row: number, col: number}[] = [];
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
         range.push({ row: r, col: c });
@@ -250,11 +295,11 @@ export default function SheetPage() {
   };
 
   const selectAllCells = () => {
-    const allCells = [];
+    const allCells: {row: number, col: number}[] = [];
     // Select all visible cells plus a reasonable buffer
     const maxRow = Math.max(visibleArea.endRow, 100);
     const maxCol = Math.max(visibleArea.endCol, 26);
-    
+
     for (let r = 0; r < maxRow; r++) {
       for (let c = 0; c < maxCol; c++) {
         allCells.push({ row: r, col: c });
@@ -291,7 +336,7 @@ export default function SheetPage() {
     const numbers = cleanValues.map(v => parseFloat(v)).filter(n => !isNaN(n));
     if (numbers.length === cleanValues.length && numbers.length >= 2) {
       // Check for arithmetic progression (constant difference)
-      const differences = [];
+      const differences: number[] = [];
       for (let i = 1; i < numbers.length; i++) {
         differences.push(numbers[i] - numbers[i - 1]);
       }
@@ -305,7 +350,7 @@ export default function SheetPage() {
       
       // Check for geometric progression (constant ratio)
       if (numbers.every(n => n !== 0)) {
-        const ratios = [];
+        const ratios: number[] = [];
         for (let i = 1; i < numbers.length; i++) {
           ratios.push(numbers[i] / numbers[i - 1]);
         }
@@ -405,19 +450,16 @@ export default function SheetPage() {
       // Check if prefixes and suffixes are consistent
       if (prefixes.every(p => p === prefixes[0]) && suffixes.every(s => s === suffixes[0])) {
         // Check for arithmetic progression in numbers
-        const numDifferences = [];
+        const numDifferences: number[] = [];
         for (let i = 1; i < numbers.length; i++) {
           numDifferences.push(numbers[i] - numbers[i - 1]);
         }
         
         if (numDifferences.every(d => d === numDifferences[0])) {
           const diff = numDifferences[0];
-          let lastNum = numbers[numbers.length - 1];
-          for (let i = 0; i < count; i++) {
-            lastNum += diff;
-            result.push(`${prefixes[0]}${lastNum}${suffixes[0]}`);
-          }
-          return result;
+          const lastNum = numbers[numbers.length - 1];
+          const nextNum = lastNum + diff;
+          return [`${prefixes[0]}${nextNum}${suffixes[0]}`];
         }
       }
     }
@@ -426,21 +468,18 @@ export default function SheetPage() {
     if (cleanValues.every(v => /^[A-Za-z]$/.test(v))) {
       const isUpperCase = cleanValues[0] === cleanValues[0].toUpperCase();
       const letters = cleanValues.map(v => v.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0));
-      
+
       if (letters.length >= 2) {
         const diff = letters[1] - letters[0];
         if (letters.every((l, i) => i === 0 || l - letters[i-1] === diff)) {
-          let lastLetterCode = letters[letters.length - 1];
-          for (let i = 0; i < count; i++) {
-            lastLetterCode += diff;
-            if (lastLetterCode >= 0 && lastLetterCode < 26) {
-              const nextLetter = String.fromCharCode('A'.charCodeAt(0) + lastLetterCode);
-              result.push(isUpperCase ? nextLetter : nextLetter.toLowerCase());
-            } else {
-              result.push(cleanValues[cleanValues.length - 1]);
-            }
+          const lastLetterCode = letters[letters.length - 1];
+          const nextLetterCode = lastLetterCode + diff;
+          if (nextLetterCode >= 0 && nextLetterCode < 26) {
+            const nextLetter = String.fromCharCode('A'.charCodeAt(0) + nextLetterCode);
+            return [isUpperCase ? nextLetter : nextLetter.toLowerCase()];
+          } else {
+            return [cleanValues[cleanValues.length - 1]];
           }
-          return result;
         }
       }
     }
@@ -502,22 +541,22 @@ export default function SheetPage() {
   const generateSequence = (values: string[], count: number): string[] => {
     if (values.length === 0) return Array(count).fill("");
     if (values.length === 1) return Array(count).fill(values[0]);
-    
+
     const cleanValues = values.map(v => v.trim()).filter(v => v !== "");
     if (cleanValues.length === 0) return Array(count).fill("");
-    
+
     const result: string[] = [];
-    
+
     // Detect the pattern type and generate accordingly
     const numbers = cleanValues.map(v => parseFloat(v)).filter(n => !isNaN(n));
-    
+
     // Numeric arithmetic sequence
     if (numbers.length === cleanValues.length && numbers.length >= 2) {
       const differences: number[] = [];
       for (let i = 1; i < numbers.length; i++) {
         differences.push(numbers[i] - numbers[i - 1]);
       }
-      
+
       if (differences.every(d => Math.abs(d - differences[0]) < 0.0001)) {
         const diff = differences[0];
         let lastNum = numbers[numbers.length - 1];
@@ -668,7 +707,7 @@ export default function SheetPage() {
     if (extendRight) {
       // Extend to the right
       for (let r = minRow; r <= maxRow; r++) {
-        const rowValues = [];
+        const rowValues: string[] = [];
         for (let c = minCol; c <= maxCol; c++) {
           rowValues.push(getCellValue(r, c));
         }
@@ -687,7 +726,7 @@ export default function SheetPage() {
     } else if (extendDown) {
       // Extend downward
       for (let c = minCol; c <= maxCol; c++) {
-        const colValues = [];
+        const colValues: string[] = [];
         for (let r = minRow; r <= maxRow; r++) {
           colValues.push(getCellValue(r, c));
         }
@@ -731,49 +770,91 @@ export default function SheetPage() {
       font_style: formatting?.font_style,
       background_color: formatting?.background_color,
     };
-    
+
     const url = '/api/cells';
-    await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...cellData, sheet }),
-    });
-    setCells(prev => {
-      const idx = prev.findIndex(c => c.row === row && c.col === col);
-      const updated = { ...cellData } as Cell;
-      if (idx >= 0) {
-        const arr = [...prev];
-        arr[idx] = { ...arr[idx], ...updated };
-        return arr;
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...cellData, sheet }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        setError(`Failed to update cell: ${errorText}`);
+        setTimeout(() => setError(null), 5000);
+        return;
       }
-      return [...prev, updated];
-    });
+
+      // Only update UI if the request succeeded
+      setCells(prev => {
+        const idx = prev.findIndex(c => c.row === row && c.col === col);
+        const updated = { ...cellData } as Cell;
+        if (idx >= 0) {
+          const arr = [...prev];
+          arr[idx] = { ...arr[idx], ...updated };
+          return arr;
+        }
+        return [...prev, updated];
+      });
+    } catch (err) {
+      setError(`Failed to update cell: ${err instanceof Error ? err.message : 'Network error'}`);
+      setTimeout(() => setError(null), 5000);
+    }
   };
 
   const updateCellsBulk = async (cellsToUpdate: Cell[]) => {
     const url = '/api/cells/bulk';
-    await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(cellsToUpdate.map(c => ({ ...c, sheet }))),
-    });
-    setCells(prev => {
-      const map = new Map(prev.map(c => [`${c.row}-${c.col}`, c]));
-      cellsToUpdate.forEach(c => {
-        map.set(`${c.row}-${c.col}`, { ...c });
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cellsToUpdate.map(c => ({ ...c, sheet }))),
       });
-      return Array.from(map.values());
-    });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        setError(`Failed to update cells: ${errorText}`);
+        setTimeout(() => setError(null), 5000);
+        return;
+      }
+
+      // Only update UI if the request succeeded
+      setCells(prev => {
+        const map = new Map(prev.map(c => [`${c.row}-${c.col}`, c]));
+        cellsToUpdate.forEach(c => {
+          map.set(`${c.row}-${c.col}`, { ...c });
+        });
+        return Array.from(map.values());
+      });
+    } catch (err) {
+      setError(`Failed to update cells: ${err instanceof Error ? err.message : 'Network error'}`);
+      setTimeout(() => setError(null), 5000);
+    }
   };
 
   const clearCellsBulk = async (positions: {row: number, col: number}[]) => {
     const url = '/api/cells/clear';
-    await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cells: positions.map(p => ({ ...p, sheet })) }),
-    });
-    setCells(prev => prev.filter(c => !positions.some(p => p.row === c.row && p.col === c.col)));
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cells: positions.map(p => ({ ...p, sheet })) }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        setError(`Failed to clear cells: ${errorText}`);
+        setTimeout(() => setError(null), 5000);
+        return;
+      }
+
+      // Only update UI if the request succeeded
+      setCells(prev => prev.filter(c => !positions.some(p => p.row === c.row && p.col === c.col)));
+    } catch (err) {
+      setError(`Failed to clear cells: ${err instanceof Error ? err.message : 'Network error'}`);
+      setTimeout(() => setError(null), 5000);
+    }
   };
 
   const handleCellClick = (row: number, col: number, event?: React.MouseEvent) => {
@@ -865,12 +946,25 @@ export default function SheetPage() {
   const handleCellRightClick = (e: React.MouseEvent, row: number, col: number) => {
     e.preventDefault();
     selectSingleCell(row, col);
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      row,
-      col
-    });
+
+    // Calculate context menu position with bounds checking
+    const menuWidth = 160; // Approximate width of context menu
+    const menuHeight = 200; // Approximate height of context menu
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    let x = e.clientX;
+    let y = e.clientY;
+
+    // Adjust if menu would go off-screen
+    if (x + menuWidth > windowWidth) {
+      x = windowWidth - menuWidth - 10;
+    }
+    if (y + menuHeight > windowHeight) {
+      y = windowHeight - menuHeight - 10;
+    }
+
+    setContextMenu({ x, y, row, col });
   };
 
   const handleCellDoubleClick = (row: number, col: number) => {
@@ -964,36 +1058,76 @@ export default function SheetPage() {
 
   const evaluateFormula = async () => {
     if (!formula) return;
-    
+
     try {
       const url = '/api/evaluate';
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expr: formula }),
+        body: JSON.stringify({ expr: formula, sheet }),
       });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        setEvaluationResult(`Error: ${errorText}`);
+        setTimeout(() => setEvaluationResult(null), 5000);
+        return;
+      }
+
       const result = await res.text();
-      alert(`Result: ${result}`);
-    } catch {
-      alert("Error evaluating formula");
+      setEvaluationResult(`Result: ${result}`);
+
+      // If a cell is selected, optionally insert the result
+      if (primarySelection) {
+        const confirmInsert = confirm(`Result: ${result}\n\nDo you want to insert this result into the selected cell?`);
+        if (confirmInsert) {
+          await updateCell(primarySelection.row, primarySelection.col, result);
+          setFormula('');
+        }
+      }
+
+      // Clear evaluation result after 5 seconds
+      setTimeout(() => setEvaluationResult(null), 5000);
+    } catch (err) {
+      setEvaluationResult(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setTimeout(() => setEvaluationResult(null), 5000);
     }
   };
 
   return (
     <main className={styles.container}>
       <div className={styles.header}>
-        <h1>AIxcel - Excel-like Spreadsheet</h1>
+        <div className={styles.headerTop}>
+          <button
+            onClick={() => window.location.href = '/'}
+            className={styles.backButton}
+            title="Back to home"
+          >
+            ← Back
+          </button>
+          <h1>AIxcel - {sheet.charAt(0).toUpperCase() + sheet.slice(1)} Sheet</h1>
+        </div>
         <div className={styles.toolbar}>
           <div className={styles.selectedCellInfo}>
-            {primarySelection ? `${getColumnLabel(primarySelection.col)}${primarySelection.row + 1}` : "No selection"}
+            {primarySelection ? (
+              <>
+                <strong>{getColumnLabel(primarySelection.col)}{primarySelection.row + 1}</strong>
+                {getCellValue(primarySelection.row, primarySelection.col) && (
+                  <span className={styles.cellValuePreview}>
+                    : {getCellValue(primarySelection.row, primarySelection.col).substring(0, 20)}
+                    {getCellValue(primarySelection.row, primarySelection.col).length > 20 ? '...' : ''}
+                  </span>
+                )}
+              </>
+            ) : "No selection"}
           </div>
-          
+
           {/* WebSocket connection status */}
           <div className={`${styles.connectionStatus} ${isConnected ? styles.connected : styles.disconnected}`}>
             <div className={styles.connectionDot}></div>
             {isConnected ? `Connected (${connectedUsers.length} users)` : 'Disconnected'}
           </div>
-          
+
           <div className={styles.formulaBar}>
             <label>Formula:</label>
             <input
@@ -1001,11 +1135,21 @@ export default function SheetPage() {
               placeholder="=SUM(A1:B5) or =AVERAGE(A1,B1,C1)"
               value={formula}
               onChange={(e) => setFormula(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  evaluateFormula();
+                }
+              }}
               className={styles.formulaInput}
             />
             <button onClick={evaluateFormula} className={styles.evalButton}>
               Evaluate
             </button>
+            {evaluationResult && (
+              <div className={`${styles.evaluationResult} ${evaluationResult.startsWith('Error') ? styles.error : styles.success}`}>
+                {evaluationResult}
+              </div>
+            )}
           </div>
           <div className={styles.formattingBar}>
             <button 
@@ -1031,7 +1175,23 @@ export default function SheetPage() {
         </div>
       </div>
 
-      <div 
+      {/* Loading state */}
+      {isLoading && (
+        <div className={styles.loadingOverlay}>
+          <div className={styles.loadingSpinner}></div>
+          <p>Loading spreadsheet...</p>
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <div className={styles.errorBanner}>
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className={styles.closeButton}>×</button>
+        </div>
+      )}
+
+      <div
         className={styles.spreadsheet}
         onScroll={(e) => {
           const target = e.target as HTMLElement;

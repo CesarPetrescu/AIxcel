@@ -43,12 +43,16 @@ pub struct CellUpdate {
 #[derive(Message, Serialize, Deserialize, Clone)]
 #[rtype(result = "()")]
 pub struct UserJoined {
+    #[serde(rename = "type")]
+    pub message_type: String,
     pub user_id: String,
 }
 
 #[derive(Message, Serialize, Deserialize, Clone)]
 #[rtype(result = "()")]
 pub struct UserLeft {
+    #[serde(rename = "type")]
+    pub message_type: String,
     pub user_id: String,
 }
 
@@ -67,6 +71,7 @@ impl Actor for WebSocketSession {
 
         // Notify other users that a new user joined
         let msg = UserJoined {
+            message_type: "UserJoined".to_string(),
             user_id: self.id.clone(),
         };
         let msg_str = serde_json::to_string(&msg).unwrap();
@@ -84,6 +89,7 @@ impl Actor for WebSocketSession {
 
         // Notify other users that user left
         let msg = UserLeft {
+            message_type: "UserLeft".to_string(),
             user_id: self.id.clone(),
         };
         let msg_str = serde_json::to_string(&msg).unwrap();

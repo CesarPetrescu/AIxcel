@@ -770,49 +770,91 @@ export default function SheetPage() {
       font_style: formatting?.font_style,
       background_color: formatting?.background_color,
     };
-    
+
     const url = '/api/cells';
-    await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...cellData, sheet }),
-    });
-    setCells(prev => {
-      const idx = prev.findIndex(c => c.row === row && c.col === col);
-      const updated = { ...cellData } as Cell;
-      if (idx >= 0) {
-        const arr = [...prev];
-        arr[idx] = { ...arr[idx], ...updated };
-        return arr;
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...cellData, sheet }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        setError(`Failed to update cell: ${errorText}`);
+        setTimeout(() => setError(null), 5000);
+        return;
       }
-      return [...prev, updated];
-    });
+
+      // Only update UI if the request succeeded
+      setCells(prev => {
+        const idx = prev.findIndex(c => c.row === row && c.col === col);
+        const updated = { ...cellData } as Cell;
+        if (idx >= 0) {
+          const arr = [...prev];
+          arr[idx] = { ...arr[idx], ...updated };
+          return arr;
+        }
+        return [...prev, updated];
+      });
+    } catch (err) {
+      setError(`Failed to update cell: ${err instanceof Error ? err.message : 'Network error'}`);
+      setTimeout(() => setError(null), 5000);
+    }
   };
 
   const updateCellsBulk = async (cellsToUpdate: Cell[]) => {
     const url = '/api/cells/bulk';
-    await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(cellsToUpdate.map(c => ({ ...c, sheet }))),
-    });
-    setCells(prev => {
-      const map = new Map(prev.map(c => [`${c.row}-${c.col}`, c]));
-      cellsToUpdate.forEach(c => {
-        map.set(`${c.row}-${c.col}`, { ...c });
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cellsToUpdate.map(c => ({ ...c, sheet }))),
       });
-      return Array.from(map.values());
-    });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        setError(`Failed to update cells: ${errorText}`);
+        setTimeout(() => setError(null), 5000);
+        return;
+      }
+
+      // Only update UI if the request succeeded
+      setCells(prev => {
+        const map = new Map(prev.map(c => [`${c.row}-${c.col}`, c]));
+        cellsToUpdate.forEach(c => {
+          map.set(`${c.row}-${c.col}`, { ...c });
+        });
+        return Array.from(map.values());
+      });
+    } catch (err) {
+      setError(`Failed to update cells: ${err instanceof Error ? err.message : 'Network error'}`);
+      setTimeout(() => setError(null), 5000);
+    }
   };
 
   const clearCellsBulk = async (positions: {row: number, col: number}[]) => {
     const url = '/api/cells/clear';
-    await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cells: positions.map(p => ({ ...p, sheet })) }),
-    });
-    setCells(prev => prev.filter(c => !positions.some(p => p.row === c.row && p.col === c.col)));
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cells: positions.map(p => ({ ...p, sheet })) }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        setError(`Failed to clear cells: ${errorText}`);
+        setTimeout(() => setError(null), 5000);
+        return;
+      }
+
+      // Only update UI if the request succeeded
+      setCells(prev => prev.filter(c => !positions.some(p => p.row === c.row && p.col === c.col)));
+    } catch (err) {
+      setError(`Failed to clear cells: ${err instanceof Error ? err.message : 'Network error'}`);
+      setTimeout(() => setError(null), 5000);
+    }
   };
 
   const handleCellClick = (row: number, col: number, event?: React.MouseEvent) => {

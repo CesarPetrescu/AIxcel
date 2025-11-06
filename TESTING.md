@@ -495,6 +495,37 @@ curl -X OPTIONS http://localhost:6889/cells \
 ### Known Issues
 - None currently identified
 
+### Recently Fixed Issues (Code Review)
+
+#### Issue: Optimistic UI Updates Without Server Validation
+**Problem**: The `updateCell`, `updateCellsBulk`, and `clearCellsBulk` functions were updating the UI immediately without checking if the server request succeeded. When formulas failed validation on the backend (returning 400 Bad Request), the UI would still show the change, leading to inconsistent state.
+
+**Impact**: Users entering invalid formulas would see the change in the UI, but on page refresh, the change would be lost (silently reverted to previous value).
+
+**Fix Applied**:
+```typescript
+// Before (problematic):
+await fetch(url, { method: "POST", ... });
+setCells(prev => /* update immediately */);
+
+// After (fixed):
+const response = await fetch(url, { method: "POST", ... });
+if (!response.ok) {
+  const errorText = await response.text();
+  setError(`Failed to update: ${errorText}`);
+  return; // Don't update UI
+}
+// Only update UI if request succeeded
+setCells(prev => /* update */);
+```
+
+**Result**:
+- ✅ UI only updates when server confirms success
+- ✅ Invalid formulas show error banner instead of silently failing
+- ✅ Client state stays consistent with database
+- ✅ Network errors are properly surfaced to users
+- ✅ All three functions (updateCell, updateCellsBulk, clearCellsBulk) fixed
+
 ---
 
 ## Stress Tests
